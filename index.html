@@ -110,7 +110,7 @@
 
             <div class="flex-1 overflow-y-auto pr-2">
                 <h3 class="text-xl text-slate-300 mb-4">选择你的下一次化身</h3>
-                <div class="grid grid-cols-2 lg:grid-cols-3 gap-4" id="class-container">
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4" id="class-container">
                     <!-- Cards injected by JS -->
                 </div>
             </div>
@@ -127,6 +127,9 @@
     <div id="screen-gameover" class="overlay hidden">
         <h1 class="text-6xl font-black text-red-500 mb-4" id="go-title">时间线崩塌</h1>
         <p class="text-2xl text-slate-300 mb-8" id="go-subtitle">核心基地已被摧毁</p>
+        <div class="bg-slate-800 p-6 rounded-xl border border-slate-700 mb-8 text-center min-w-[300px]">
+            <p class="text-4xl font-bold text-cyan-400 mb-4">坚持轮数: <span id="end-wave">1</span></p>
+        </div>
         <button id="btn-restart" onclick="location.reload()" class="px-10 py-4 bg-gradient-to-r from-red-600 to-orange-600 text-white text-2xl font-bold rounded-full shadow-[0_0_20px_rgba(239,68,68,0.5)] transform transition hover:scale-105">
             重新加载宇宙
         </button>
@@ -155,46 +158,45 @@ const CONFIG = {
 const STATE = { START: 0, MATCHMAKING: 1, SHOP: 2, PLAYING: 3, SYNCING: 4, GAMEOVER: 5 };
 let gameState = STATE.START;
 let isMultiplayer = false;
-let waveTimeLimit = 20; // 20s for SP, 45s for MP
+let waveTimeLimit = 20; 
 let maxTicks = 0;
 
 let gameData = {
     wave: 1, tick: 0,
-    pastLoops: [], // Local + Opponent loops combined
-    myPastLoops: [], // Just my loops
+    pastLoops: [], 
+    myPastLoops: [],
     currentLoopData: { classType: '', trajectory: [] },
     baseHp: CONFIG.BASE_HP_MAX,
     baseX: 0, baseY: 0,
     coins: 200,
-    placedTurrets: [], // {x, y, ownerId}
-    markerPos: null // Engineer teleport marker
+    markerPos: null
 };
 
 const CLASSES = {
     assault: { name: "风暴兵", desc: "冲锋枪。连续开火2.5s后过热冷却1.5s。" },
     grenadier: { name: "掷弹兵", desc: "强化爆破。抛物线投掷，爆炸范围极大且伤害高。" },
     scout: { name: "飞行侦察兵", desc: "极速移动(1.5x)。射击在身后投下2秒延时的范围炸弹。" },
-    handler: { name: "训狗师", desc: "每1.5秒自动召唤猎犬(最多3只)，自动追击并撕咬减速敌人。" },
+    handler: { name: "训狗师", desc: "每1.5秒自动召唤猎犬，自动追击并撕咬减速敌人。" },
     shockwave: { name: "震荡机", desc: "射击释放范围震荡波，眩晕敌人0.7秒并减速3秒。" },
-    engineer: { name: "工兵", desc: "按 E 键耗50金币造炮台。按 Q 键放置基地跃迁信标。" },
+    engineer: { name: "工兵", desc: "按 E 键耗50金币造炮台(需2.5秒)，回溯后炮塔重置需再次搭建。按 Q 标记跃迁点。" },
     radiation: { name: "辐射兵", desc: "自带致命辐射场，持续灼烧周围敌人。" },
     flame: { name: "喷火兵", desc: "喷射锥形穿透火焰，群体杀伤。" },
     shotgun: { name: "战壕兵", desc: "霰弹枪，近战极高爆发，散射弹片。" },
-    shield: { name: "盾兵", desc: "举盾时减速，弹开撞击的敌人并格挡伤害。" }
+    shield: { name: "盾兵", desc: "举盾时减速，弹开撞击的敌人并格挡伤害。" },
+    commissar: { name: "政委", desc: "手枪射击(10发换弹1s)。释放光环，大幅提升范围内所有时间线分身的伤害。" },
+    sniper: { name: "狙击手", desc: "长按鼠标左键锁定敌人，蓄力预瞄0.5秒后发射100%必杀狙击弹。" }
 };
 let selectedClass = 'assault';
 
 // Engine State
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-
-// --- 新增：用于离屏渲染战争迷雾的虚拟 Canvas ---
 const fogCanvas = document.createElement('canvas');
 const fogCtx = fogCanvas.getContext('2d');
 
 let camera = { x: 0, y: 0 };
 let screenShake = 0;
-let minimapZoom = 0.05; // 初始小地图缩放比例
+let minimapZoom = 0.05; 
 
 // Entities
 let player = null;
@@ -202,6 +204,7 @@ let clones = [];
 let bullets = []; 
 let dogs = [];
 let shockwaves = [];
+let laserBeams = [];
 let enemies = [];
 let particles = [];
 let resources = [];
@@ -212,7 +215,6 @@ const keys = { w: false, a: false, s: false, d: false, e: false, q: false };
 const mouse = { x: 0, y: 0, down: false };
 const inputState = { e_pressed: false, q_pressed: false };
 
-// PRNG for consistent multiplayer enemy spawns
 let seed = 1;
 function random() {
     let x = Math.sin(seed++) * 10000;
@@ -225,7 +227,6 @@ function random() {
 function resize() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-    // 同步调整迷雾画布大小
     fogCanvas.width = window.innerWidth;
     fogCanvas.height = window.innerHeight;
 }
@@ -254,15 +255,10 @@ window.addEventListener('keyup', e => {
 window.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
 window.addEventListener('mousedown', () => mouse.down = true);
 window.addEventListener('mouseup', () => mouse.down = false);
-
-// 监听滚轮事件，用于缩放小地图
 window.addEventListener('wheel', (e) => {
     if (gameState === STATE.PLAYING) {
-        if (e.deltaY < 0) {
-            minimapZoom = Math.min(0.2, minimapZoom * 1.2); // 放大
-        } else {
-            minimapZoom = Math.max(0.01, minimapZoom / 1.2); // 缩小
-        }
+        if (e.deltaY < 0) minimapZoom = Math.min(0.2, minimapZoom * 1.2); 
+        else minimapZoom = Math.max(0.01, minimapZoom / 1.2); 
     }
 });
 
@@ -307,7 +303,6 @@ async function startMatchmaking() {
     const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
     const roomsCol = collection(db, 'artifacts', appId, 'public', 'data', 'pvp_rooms');
     
-    // Find open room
     const snap = await getDocs(roomsCol);
     let joined = false;
     
@@ -328,49 +323,30 @@ async function startMatchmaking() {
         myRole = 'p1';
         roomId = `room_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
         roomRef = doc(roomsCol, roomId);
-        await setDoc(roomRef, {
-            p1: userId, p2: null, wave: 1, p1Data: null, p2Data: null
-        });
+        await setDoc(roomRef, { p1: userId, p2: null, wave: 1, p1Data: null, p2Data: null });
         document.getElementById('match-status').innerText = "已创建时空枢纽，等待对手加入...";
     }
 
-    // Listen to room
     unsubscribeRoom = onSnapshot(roomRef, (docSnap) => {
         if (!docSnap.exists()) return;
         let data = docSnap.data();
         
-        // Start game when P2 joins
         if (gameState === STATE.MATCHMAKING && data.p1 && data.p2) {
             document.getElementById('screen-matchmaking').classList.add('hidden');
-            // Init MP positions
             if (myRole === 'p1') { gameData.baseX = 0; gameData.baseY = 0; }
             else { gameData.baseX = 3000; gameData.baseY = 3000; }
             openShop();
         }
 
-        // Syncing logic: if both have uploaded data for THIS wave
         if (gameState === STATE.SYNCING && data.p1Data && data.p2Data) {
             try {
                 let p1Loop = JSON.parse(data.p1Data);
                 let p2Loop = JSON.parse(data.p2Data);
-                
-                // Add to past loops (decompress)
                 gameData.pastLoops.push(decompressLoop(p1Loop));
                 gameData.pastLoops.push(decompressLoop(p2Loop));
                 
-                // Merge turrets from both players
-                if(p1Loop.turrets) gameData.placedTurrets.push(...p1Loop.turrets);
-                if(p2Loop.turrets) gameData.placedTurrets.push(...p2Loop.turrets);
-                
-                // In MP, opponent base HP doesn't matter to us locally unless we want a win condition
-                // Simplified: we survive as long as our base survives.
-                
                 gameData.wave++;
-                
-                // Reset data on server (Only P1 cleans up to avoid race conditions)
-                if (myRole === 'p1') {
-                    updateDoc(roomRef, { p1Data: null, p2Data: null, wave: gameData.wave });
-                }
+                if (myRole === 'p1') updateDoc(roomRef, { p1Data: null, p2Data: null, wave: gameData.wave });
                 
                 document.getElementById('screen-syncing').classList.add('hidden');
                 openShop();
@@ -381,13 +357,15 @@ async function startMatchmaking() {
 
 function compressLoop(loopObj) {
     let cTraj = [];
-    // Save every 3rd frame to massively reduce size for Firestore
     for(let i=0; i<loopObj.trajectory.length; i+=3) {
         let t = loopObj.trajectory[i];
-        if (t) cTraj.push([Math.round(t.x), Math.round(t.y), Math.round(t.angle*100)/100, t.firing?1:0, Math.round(t.tX), Math.round(t.tY)]);
+        if (t) {
+            let bs = loopObj.trajectory[i].buildStarted || (loopObj.trajectory[i+1] && loopObj.trajectory[i+1].buildStarted) || (loopObj.trajectory[i+2] && loopObj.trajectory[i+2].buildStarted);
+            cTraj.push([Math.round(t.x), Math.round(t.y), Math.round(t.angle*100)/100, t.firing?1:0, Math.round(t.tX), Math.round(t.tY), bs?1:0]);
+        }
         else cTraj.push(null);
     }
-    return { classType: loopObj.classType, traj: cTraj, turrets: loopObj.newTurrets || [] };
+    return { classType: loopObj.classType, traj: cTraj };
 }
 
 function decompressLoop(cLoop) {
@@ -395,10 +373,10 @@ function decompressLoop(cLoop) {
     for(let i=0; i<cLoop.traj.length; i++) {
         let t = cLoop.traj[i];
         if(t) {
-            let state = { x: t[0], y: t[1], angle: t[2], firing: t[3]===1, tX: t[4], tY: t[5] };
+            let state = { x: t[0], y: t[1], angle: t[2], firing: t[3]===1, tX: t[4], tY: t[5], buildStarted: t[6]===1 };
             traj[i*3] = state;
-            if(i*3+1 < maxTicks) traj[i*3+1] = state; // simple hold interpolation
-            if(i*3+2 < maxTicks) traj[i*3+2] = state;
+            if(i*3+1 < maxTicks) traj[i*3+1] = { ...state, buildStarted: false }; 
+            if(i*3+2 < maxTicks) traj[i*3+2] = { ...state, buildStarted: false };
         }
     }
     return { classType: cLoop.classType, trajectory: traj };
@@ -422,34 +400,50 @@ class PlayerUnit {
         this.x = x; this.y = y; this.classType = classType; this.isClone = isClone;
         this.active = true; this.angle = 0; this.cooldown = 0; this.fireTimer = 0;
         this.myDogs = 0;
+        this.buildTimer = 0;
+        this.ammo = 10;
+        this.reloadTimer = 0;
+        this.aimTimer = 0;
+        this.aimTarget = null;
+        this.buffed = false;
     }
 
     update(state) {
         if (!this.active) return;
         
-        let speedMult = (this.classType === 'scout') ? 1.5 : 1.0;
         this.x = state.x; this.y = state.y; this.angle = state.angle;
-        this.isFiring = state.firing; // 记录开火状态供渲染使用
+        this.isFiring = state.firing; 
         
         if (this.cooldown > 0) this.cooldown--;
+
+        // Commissar Buff Check
+        this.buffed = false;
+        let allUnits = [player, ...clones].filter(u => u && u.active);
+        for(let u of allUnits) {
+            if (u.classType === 'commissar' && dist(this.x, this.y, u.x, u.y) < 250) {
+                this.buffed = true;
+                break;
+            }
+        }
+        let dmgMult = this.buffed ? 1.5 : 1;
 
         // Combat logic
         if (this.classType === 'assault') {
             if (state.firing && this.cooldown === 0) {
                 this.fireTimer++;
-                if (this.fireTimer % 5 === 0) bullets.push(new Bullet(this.x, this.y, this.angle, this.isClone, 15, 15, 'smg'));
+                if (this.fireTimer % 5 === 0) bullets.push(new Bullet(this.x, this.y, this.angle, this.isClone, 15 * dmgMult, 15, 'smg', this.buffed));
                 if (this.fireTimer >= 150) { this.cooldown = 90; this.fireTimer = 0; }
             } else if (!state.firing) this.fireTimer = Math.max(0, this.fireTimer - 2);
         } 
         else if (this.classType === 'grenadier') {
             if (state.firing && this.cooldown === 0) {
-                bullets.push(new Grenade(this.x, this.y, state.tX, state.tY, this.isClone));
+                bullets.push(new Grenade(this.x, this.y, state.tX, state.tY, this.isClone, this.buffed));
                 this.cooldown = 75;
             }
         }
         else if (this.classType === 'scout') {
             if (state.firing && this.cooldown === 0) {
-                bullets.push(new TimeBomb(this.x, this.y, this.isClone));
+                bullets.push(new TimeBomb(this.x, this.y, this.isClone, this.buffed));
                 this.cooldown = 40;
             }
         }
@@ -461,8 +455,8 @@ class PlayerUnit {
         }
         else if (this.classType === 'shockwave') {
             if (state.firing && this.cooldown === 0) {
-                shockwaves.push({x: this.x, y: this.y, radius: 10, maxRadius: 250, life: 30, maxLife: 30, isClone: this.isClone});
-                this.cooldown = 150; // 2.5s
+                shockwaves.push({x: this.x, y: this.y, radius: 10, maxRadius: 250, life: 30, maxLife: 30, dmg: 20 * dmgMult});
+                this.cooldown = 150; 
             }
         }
         else if (this.classType === 'radiation') {
@@ -470,7 +464,7 @@ class PlayerUnit {
                 createParticles(this.x, this.y, '#22c55e', 1);
                 enemies.forEach(e => {
                     if(e.active && dist(this.x, this.y, e.x, e.y) < 100) {
-                        e.hp -= 5;
+                        e.hp -= 5 * dmgMult;
                         createParticles(e.x, e.y, '#22c55e', 1);
                     }
                 });
@@ -478,7 +472,7 @@ class PlayerUnit {
         }
         else if (this.classType === 'flame') {
             if (state.firing && this.cooldown === 0) {
-                bullets.push(new Bullet(this.x, this.y, this.angle + (Math.random()-0.5)*0.2, this.isClone, 8, 8, 'flame'));
+                bullets.push(new Bullet(this.x, this.y, this.angle + (Math.random()-0.5)*0.2, this.isClone, 8 * dmgMult, 8, 'flame', this.buffed));
                 this.cooldown = 3;
             }
         }
@@ -486,28 +480,65 @@ class PlayerUnit {
             if (state.firing && this.cooldown === 0) {
                 let spreads = [-0.3, -0.15, 0, 0.15, 0.3];
                 spreads.forEach(sp => {
-                    bullets.push(new Bullet(this.x, this.y, this.angle + sp, this.isClone, 40, 15, 'shotgun'));
+                    bullets.push(new Bullet(this.x, this.y, this.angle + sp, this.isClone, 40 * dmgMult, 15, 'shotgun', this.buffed));
                 });
                 this.cooldown = 45;
             }
         }
-
-        // Engineer local input logic
-        if (!this.isClone && this.classType === 'engineer') {
-            if (inputState.e_pressed && this.cooldown === 0 && gameData.coins >= 50) {
-                gameData.coins -= 50;
-                gameData.currentLoopData.newTurrets = gameData.currentLoopData.newTurrets || [];
-                let tData = {x: this.x, y: this.y, owner: userId};
-                gameData.currentLoopData.newTurrets.push(tData);
-                gameData.placedTurrets.push(tData);
-                turrets.push(new Turret(this.x, this.y));
-                this.cooldown = 30;
-                inputState.e_pressed = false;
+        else if (this.classType === 'engineer') {
+            if (state.buildStarted) {
+                this.buildTimer = 150; // 2.5s
             }
-            if (inputState.q_pressed && this.cooldown === 0) {
-                gameData.markerPos = {x: this.x, y: this.y};
-                this.cooldown = 30;
-                inputState.q_pressed = false;
+            if (this.buildTimer > 0) {
+                this.buildTimer--;
+                if (this.buildTimer % 5 === 0) {
+                    createParticles(this.x + (Math.random()-0.5)*20, this.y + (Math.random()-0.5)*20, '#eab308', 1, 0.5, 0.5);
+                }
+                if (this.buildTimer === 0) {
+                    turrets.push(new Turret(this.x, this.y));
+                }
+            }
+        }
+        else if (this.classType === 'commissar') {
+            if (this.reloadTimer > 0) {
+                this.reloadTimer--;
+            } else if (state.firing && this.cooldown === 0) {
+                bullets.push(new Bullet(this.x, this.y, this.angle + (Math.random()-0.5)*0.05, this.isClone, 35 * dmgMult, 20, 'pistol', this.buffed));
+                this.ammo--;
+                this.cooldown = 12;
+                if (this.ammo <= 0) {
+                    this.reloadTimer = 60;
+                    this.ammo = 10;
+                }
+            }
+        }
+        else if (this.classType === 'sniper') {
+            if (state.firing && this.cooldown === 0) {
+                if (!this.aimTarget || !this.aimTarget.active || dist(state.tX, state.tY, this.aimTarget.x, this.aimTarget.y) > 150) {
+                    this.aimTarget = null;
+                    this.aimTimer = 0;
+                    let minDist = 150;
+                    enemies.forEach(e => {
+                        if (e.active) {
+                            let d = dist(state.tX, state.tY, e.x, e.y);
+                            if (d < minDist) { minDist = d; this.aimTarget = e; }
+                        }
+                    });
+                }
+
+                if (this.aimTarget) {
+                    this.aimTimer++;
+                    if (this.aimTimer >= 30) {
+                        laserBeams.push({ x1: this.x, y1: this.y, x2: this.aimTarget.x, y2: this.aimTarget.y, life: 15 });
+                        this.aimTarget.hp = -9999; 
+                        createParticles(this.aimTarget.x, this.aimTarget.y, '#ef4444', 30, 3);
+                        this.aimTimer = 0;
+                        this.cooldown = 120;
+                    }
+                }
+            } else {
+                this.aimTarget = null;
+                this.aimTimer = 0;
             }
         }
 
@@ -531,31 +562,55 @@ class PlayerUnit {
         ctx.fillStyle = color; ctx.shadowBlur = 10; ctx.shadowColor = color;
         ctx.beginPath(); ctx.arc(0, 0, CONFIG.PLAYER_RADIUS, 0, Math.PI * 2); ctx.fill();
         
-        // Weapon visuals
         ctx.fillStyle = '#fff';
         if (this.classType === 'assault') ctx.fillRect(5, -3, 16, 6);
         else if (this.classType === 'grenadier') { ctx.fillRect(5, -4, 10, 8); ctx.fillStyle='#f97316'; ctx.fillRect(15,-5,8,10); }
         else if (this.classType === 'scout') { ctx.beginPath(); ctx.moveTo(5,-8); ctx.lineTo(15,0); ctx.lineTo(5,8); ctx.fill(); }
         else if (this.classType === 'handler') { ctx.fillStyle='#8b5cf6'; ctx.fillRect(2,-2,10,4); }
         else if (this.classType === 'shockwave') { ctx.beginPath(); ctx.arc(8,0,6,0,Math.PI*2); ctx.fill(); }
-        else if (this.classType === 'engineer') { ctx.fillStyle='#eab308'; ctx.fillRect(0,-10,4,20); ctx.fillRect(0,-4,12,8); }
+        else if (this.classType === 'engineer') { 
+            ctx.fillStyle='#eab308'; ctx.fillRect(0,-10,4,20); ctx.fillRect(0,-4,12,8); 
+            if (this.buildTimer > 0) {
+                ctx.save(); ctx.rotate(-this.angle); 
+                ctx.strokeStyle = '#eab308'; ctx.lineWidth = 3;
+                ctx.beginPath(); ctx.arc(0, 0, 25, -Math.PI/2, -Math.PI/2 + ((150 - this.buildTimer) / 150) * Math.PI * 2); ctx.stroke();
+                ctx.restore();
+            }
+        }
         else if (this.classType === 'shotgun') { ctx.fillRect(5, -4, 12, 8); ctx.fillRect(17, -5, 8, 10); }
         else if (this.classType === 'flame') { ctx.fillStyle = '#f97316'; ctx.fillRect(5, -4, 20, 8); }
         else if (this.classType === 'radiation') {
             ctx.fillStyle = '#22c55e'; ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI*2); ctx.fill();
-            // 辐射光环绘制
             ctx.beginPath(); ctx.arc(0, 0, 100, 0, Math.PI*2);
             ctx.fillStyle = 'rgba(34, 197, 94, 0.05)'; ctx.fill();
             ctx.strokeStyle = 'rgba(34, 197, 94, 0.2)'; ctx.stroke();
         }
         else if (this.classType === 'shield') {
             if (this.isFiring) {
-                // 举盾姿态
                 ctx.beginPath(); ctx.arc(0, 0, 25, -Math.PI/3, Math.PI/3);
                 ctx.lineWidth = 6; ctx.strokeStyle = '#60a5fa'; ctx.stroke();
-            } else {
-                // 收盾姿态
-                ctx.fillRect(8, -10, 4, 20);
+            } else ctx.fillRect(8, -10, 4, 20);
+        }
+        else if (this.classType === 'commissar') {
+            ctx.beginPath(); ctx.arc(0, 0, 250, 0, Math.PI*2);
+            ctx.fillStyle = 'rgba(239, 68, 68, 0.05)'; ctx.fill();
+            ctx.strokeStyle = 'rgba(239, 68, 68, 0.2)'; ctx.stroke();
+            ctx.fillStyle = '#fff'; ctx.fillRect(5, -2, 10, 4);
+            if (this.reloadTimer > 0) {
+                ctx.fillStyle = '#eab308'; ctx.beginPath(); ctx.arc(0, -15, 4, 0, Math.PI*2); ctx.fill();
+            }
+        }
+        else if (this.classType === 'sniper') {
+            ctx.fillStyle = '#fff'; ctx.fillRect(5, -2, 25, 4);
+            if (this.aimTarget && this.aimTimer > 0) {
+                ctx.save(); ctx.rotate(-this.angle);
+                let tAngle = Math.atan2(this.aimTarget.y - this.y, this.aimTarget.x - this.x);
+                ctx.rotate(tAngle);
+                let d = dist(this.x, this.y, this.aimTarget.x, this.aimTarget.y);
+                ctx.strokeStyle = `rgba(239, 68, 68, ${this.aimTimer / 30})`;
+                ctx.lineWidth = 1 + (this.aimTimer / 30) * 3;
+                ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(d, 0); ctx.stroke();
+                ctx.restore();
             }
         }
         
@@ -564,9 +619,9 @@ class PlayerUnit {
 }
 
 class Bullet {
-    constructor(x, y, angle, isClone, dmg, speed, type) {
+    constructor(x, y, angle, isClone, dmg, speed, type, isBuffed=false) {
         this.x = x; this.y = y; this.vx = Math.cos(angle)*speed; this.vy = Math.sin(angle)*speed;
-        this.isClone = isClone; this.dmg = dmg; this.type = type; this.active = true;
+        this.isClone = isClone; this.dmg = dmg; this.type = type; this.active = true; this.isBuffed = isBuffed;
         this.life = type === 'flame' ? 15 : (type === 'shotgun' ? 25 : 100);
     }
     update() {
@@ -579,7 +634,8 @@ class Bullet {
             ctx.fillStyle = `rgba(249, 115, 22, ${this.life/15})`;
             ctx.beginPath(); ctx.arc(0, 0, 10 - (this.life/15)*5, 0, Math.PI*2); ctx.fill();
         } else {
-            ctx.fillStyle = this.isClone ? '#60a5fa' : '#fde047'; ctx.shadowBlur = 8; ctx.shadowColor = ctx.fillStyle;
+            ctx.fillStyle = this.isBuffed ? '#f43f5e' : (this.isClone ? '#60a5fa' : '#fde047'); 
+            ctx.shadowBlur = 8; ctx.shadowColor = ctx.fillStyle;
             ctx.fillRect(-6, -2, 12, 4);
         }
         ctx.restore();
@@ -587,8 +643,8 @@ class Bullet {
 }
 
 class Grenade {
-    constructor(x, y, tX, tY, isClone) {
-        this.x = x; this.y = y; this.isClone = isClone; this.active = true;
+    constructor(x, y, tX, tY, isClone, isBuffed=false) {
+        this.x = x; this.y = y; this.isClone = isClone; this.active = true; this.isBuffed = isBuffed;
         let dx = tX - x, dy = tY - y; let d = Math.sqrt(dx*dx + dy*dy);
         let speed = 10; this.life = d / speed; this.maxLife = this.life;
         this.vx = (dx/d)*speed; this.vy = (dy/d)*speed;
@@ -597,12 +653,11 @@ class Grenade {
         this.x += this.vx; this.y += this.vy; this.life--;
         if(this.life <= 0) {
             this.active = false;
-            createParticles(this.x, this.y, '#ea580c', 40, 2, 1.5); // Orange explosion
-            // Flash screen
+            createParticles(this.x, this.y, '#ea580c', 40, 2, 1.5); 
             ctx.fillStyle = 'rgba(234, 88, 12, 0.2)'; ctx.fillRect(0,0,canvas.width,canvas.height);
             screenShake = 15;
             enemies.forEach(e => {
-                if(e.active && dist(this.x, this.y, e.x, e.y) < 180) e.hp -= 150; // Huge radius & dmg
+                if(e.active && dist(this.x, this.y, e.x, e.y) < 180) e.hp -= 150 * (this.isBuffed ? 1.5 : 1); 
             });
         }
     }
@@ -613,15 +668,15 @@ class Grenade {
 }
 
 class TimeBomb {
-    constructor(x, y, isClone) {
-        this.x = x; this.y = y; this.isClone = isClone; this.active = true; this.life = 120; // 2s
+    constructor(x, y, isClone, isBuffed=false) {
+        this.x = x; this.y = y; this.isClone = isClone; this.active = true; this.life = 120; this.isBuffed = isBuffed;
     }
     update() {
         this.life--;
         if(this.life <= 0) {
             this.active = false;
             createParticles(this.x, this.y, '#ef4444', 30, 2);
-            enemies.forEach(e => { if(e.active && dist(this.x, this.y, e.x, e.y) < 100) e.hp -= 80; });
+            enemies.forEach(e => { if(e.active && dist(this.x, this.y, e.x, e.y) < 100) e.hp -= 80 * (this.isBuffed ? 1.5 : 1); });
         }
     }
     draw(ctx) {
@@ -633,7 +688,7 @@ class TimeBomb {
 class Dog {
     constructor(x, y, isClone, owner) {
         this.x = x; this.y = y; this.isClone = isClone; this.owner = owner;
-        this.active = true; this.speed = 3.5; this.life = 600; // 10s life
+        this.active = true; this.speed = 3.5; this.life = 600; 
     }
     update() {
         this.life--;
@@ -649,8 +704,8 @@ class Dog {
             let a = Math.atan2(closest.y - this.y, closest.x - this.x);
             this.x += Math.cos(a)*this.speed; this.y += Math.sin(a)*this.speed;
             if (minDist < 20) {
-                closest.hp -= 2; // DoT
-                closest.slowTime = 60; // 1s slow
+                closest.hp -= 2; 
+                closest.slowTime = 60; 
                 createParticles(this.x, this.y, '#ef4444', 1, 0.5);
             }
         }
@@ -686,8 +741,7 @@ class Turret {
 class Enemy {
     constructor(wave, targetBaseX, targetBaseY, spawnX = null, spawnY = null) {
         if (spawnX !== null && spawnY !== null) {
-            this.x = spawnX;
-            this.y = spawnY;
+            this.x = spawnX; this.y = spawnY;
         } else {
             let a = random() * Math.PI * 2;
             let d = 1000 + random() * 500;
@@ -711,7 +765,6 @@ class Enemy {
         let s = this.speed;
         if (this.slowTime > 0) { this.slowTime--; s *= 0.4; }
 
-        // Move to nearest base
         let tx = gameData.baseX, ty = gameData.baseY;
         if (isMultiplayer) {
              let d1 = dist(this.x, this.y, 0, 0);
@@ -789,18 +842,15 @@ function renderClassCards() {
 document.getElementById('btn-next-loop').addEventListener('click', () => {
     document.getElementById('screen-shop').classList.add('hidden');
     
-    // Base Teleport logic (Engineer)
     if (gameData.markerPos) {
         gameData.baseX = gameData.markerPos.x;
         gameData.baseY = gameData.markerPos.y;
         gameData.markerPos = null;
     }
     
-    // Base Healing (75%)
     gameData.baseHp = Math.min(CONFIG.BASE_HP_MAX, gameData.baseHp + CONFIG.BASE_HP_MAX * 0.75);
 
-    // Initialize map entities
-    seed = gameData.wave; // Reset PRNG for enemies
+    seed = gameData.wave; 
     player = new PlayerUnit(gameData.baseX, gameData.baseY, selectedClass, false);
     
     clones = [];
@@ -809,11 +859,8 @@ document.getElementById('btn-next-loop').addEventListener('click', () => {
     });
 
     turrets = [];
-    gameData.placedTurrets.forEach(t => turrets.push(new Turret(t.x, t.y)));
-
-    bullets = []; dogs = []; shockwaves = []; enemies = []; particles = []; resources = [];
+    bullets = []; dogs = []; shockwaves = []; laserBeams = []; enemies = []; particles = []; resources = [];
     
-    // Generate some initial resources
     for(let i=0; i<20; i++) {
         let a = random()*Math.PI*2, d = 300 + random()*1500;
         resources.push({x: gameData.baseX+Math.cos(a)*d, y: gameData.baseY+Math.sin(a)*d, amount: Math.floor(20+random()*30)});
@@ -828,12 +875,10 @@ function endWave() {
     if (isMultiplayer) {
         gameState = STATE.SYNCING;
         document.getElementById('screen-syncing').classList.remove('hidden');
-        // Upload local data
         let cData = compressLoop(gameData.currentLoopData);
         updateDoc(roomRef, { [`${myRole}Data`]: JSON.stringify(cData) });
     } else {
         gameData.pastLoops.push(gameData.currentLoopData);
-        if(gameData.currentLoopData.newTurrets) gameData.placedTurrets.push(...gameData.currentLoopData.newTurrets);
         gameData.wave++;
         openShop();
     }
@@ -863,27 +908,44 @@ function update() {
     }
     if (gameState !== STATE.PLAYING) return;
 
-    // Local Player Input
+    // Local Player Logic & Movement
     let dx = 0, dy = 0;
     if(keys.w) dy -= 1; if(keys.s) dy += 1;
     if(keys.a) dx -= 1; if(keys.d) dx += 1;
     if(dx !== 0 || dy !== 0) {
         let len = Math.sqrt(dx*dx + dy*dy);
         let s = (selectedClass === 'scout') ? CONFIG.PLAYER_SPEED * 1.5 : CONFIG.PLAYER_SPEED;
-        if (selectedClass === 'shield' && mouse.down) s *= 0.5; // 举盾时减速
+        if (selectedClass === 'shield' && mouse.down) s *= 0.5; 
         dx = (dx/len)*s; dy = (dy/len)*s;
     }
+
+    let buildStarted = false;
+    if (player.classType === 'engineer') {
+        if (inputState.e_pressed && player.buildTimer === 0 && gameData.coins >= 50) {
+            gameData.coins -= 50;
+            buildStarted = true;
+        }
+        if (inputState.q_pressed && player.cooldown === 0) {
+            gameData.markerPos = {x: player.x, y: player.y};
+            player.cooldown = 30;
+        }
+        if (player.buildTimer > 0) {
+            dx = 0; dy = 0; // 不允许移动
+        }
+    }
+    
+    inputState.e_pressed = false;
+    inputState.q_pressed = false;
+
     let worldMouseX = mouse.x + camera.x;
     let worldMouseY = mouse.y + camera.y;
     let pAngle = Math.atan2(worldMouseY - player.y, worldMouseX - player.x);
 
-    let currentState = { x: player.x+dx, y: player.y+dy, angle: pAngle, firing: mouse.down, tX: worldMouseX, tY: worldMouseY };
+    let currentState = { x: player.x+dx, y: player.y+dy, angle: pAngle, firing: mouse.down, tX: worldMouseX, tY: worldMouseY, buildStarted: buildStarted };
     player.update(currentState);
     
-    // Save trajectory
     gameData.currentLoopData.trajectory[gameData.tick] = currentState;
 
-    // Update Clones
     clones.forEach((c, idx) => {
         let loop = gameData.pastLoops[idx];
         let state = loop.trajectory[gameData.tick] || loop.trajectory[maxTicks-1] || {x:c.x, y:c.y, angle:c.angle, firing:false};
@@ -892,11 +954,10 @@ function update() {
 
     turrets.forEach(t => t.update());
     
-    // Enemy Spawning (疏密区逻辑)
     let spawnRate = Math.max(25, 120 - gameData.wave * 10 - gameData.pastLoops.length * 3);
     if (gameData.tick % spawnRate === 0) {
-        let isSwarm = random() > 0.6; // 40%概率生成虫群/敌人集群
-        let count = isSwarm ? Math.floor(random() * 4) + 3 : 1; // 集群则生成3~6只，否则1只
+        let isSwarm = random() > 0.6; 
+        let count = isSwarm ? Math.floor(random() * 4) + 3 : 1; 
 
         let baseA = random() * Math.PI * 2;
         let baseD = 1200 + random() * 600;
@@ -922,13 +983,14 @@ function update() {
         }
     }
 
-    // Entities Update
     bullets.forEach(b => b.update());
     dogs.forEach(d => d.update());
     enemies.forEach(e => e.update());
     particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.life -= p.decay; });
     
-    // Shield Knockback Check (盾兵弹开与格挡)
+    laserBeams.forEach(l => l.life--);
+    laserBeams = laserBeams.filter(l => l.life > 0);
+
     let checkShield = (unit, isFiring) => {
         if(unit.active && unit.classType === 'shield' && isFiring) {
             enemies.forEach(e => {
@@ -942,7 +1004,7 @@ function update() {
                 if (d < CONFIG.PLAYER_RADIUS + e.radius + 15 && angleDiff < Math.PI/2.5) {
                     e.x += Math.cos(unit.angle) * 10;
                     e.y += Math.sin(unit.angle) * 10;
-                    e.hp -= 2; // 盾击微量伤害
+                    e.hp -= 2; 
                 }
             });
         }
@@ -954,22 +1016,20 @@ function update() {
         checkShield(c, state.firing);
     });
     
-    // Shockwaves
     for(let i = shockwaves.length-1; i>=0; i--) {
         let s = shockwaves[i];
         s.radius += (s.maxRadius - s.radius) * 0.15;
         s.life--;
-        if (s.life === s.maxLife - 5) { // apply effect once early
+        if (s.life === s.maxLife - 5) { 
             enemies.forEach(e => {
                 if(e.active && dist(s.x, s.y, e.x, e.y) < s.radius + 50) {
-                    e.stunTime = 42; e.slowTime = 180; e.hp -= 20;
+                    e.stunTime = 42; e.slowTime = 180; e.hp -= s.dmg;
                 }
             });
         }
         if (s.life <= 0) shockwaves.splice(i, 1);
     }
 
-    // Collisions: Bullets vs Enemies
     for (let i = bullets.length - 1; i >= 0; i--) {
         let b = bullets[i];
         if (!b.active || b instanceof Grenade || b instanceof TimeBomb) continue;
@@ -977,7 +1037,7 @@ function update() {
             let e = enemies[j];
             if (!e.active) continue;
             if (dist(b.x, b.y, e.x, e.y) < e.radius + (b.type === 'flame' ? 15 : 5)) {
-                if (b.type !== 'flame') b.active = false; // 喷火兵火焰可以穿透，不销毁
+                if (b.type !== 'flame') b.active = false; 
                 e.hp -= b.dmg;
                 createParticles(b.x, b.y, '#fde047', 2);
                 if (!b.active) break;
@@ -985,17 +1045,14 @@ function update() {
         }
     }
 
-    // Cleanup
     bullets = bullets.filter(b => b.active);
     dogs = dogs.filter(d => d.active);
     enemies = enemies.filter(e => e.active);
     particles = particles.filter(p => p.life > 0);
 
-    // Camera follow (Smooth)
     camera.x += (player.x - canvas.width/2 - camera.x) * 0.1;
     camera.y += (player.y - canvas.height/2 - camera.y) * 0.1;
 
-    // UI & Time
     gameData.tick++;
     if (gameData.tick % 15 === 0) {
         document.getElementById('ui-wave').innerText = gameData.wave;
@@ -1022,7 +1079,6 @@ function draw() {
     applyScreenShake();
     ctx.translate(-camera.x, -camera.y);
 
-    // Map Grid
     ctx.strokeStyle = 'rgba(51, 65, 85, 0.3)'; ctx.lineWidth = 1; ctx.beginPath();
     let startX = camera.x - (camera.x % 100) - 100, endX = camera.x + canvas.width + 100;
     let startY = camera.y - (camera.y % 100) - 100, endY = camera.y + canvas.height + 100;
@@ -1030,13 +1086,11 @@ function draw() {
     for(let i=startY; i<endY; i+=100) { ctx.moveTo(startX, i); ctx.lineTo(endX, i); }
     ctx.stroke();
 
-    // Resources
     resources.forEach(r => {
         ctx.fillStyle = '#facc15'; ctx.shadowBlur = 10; ctx.shadowColor = '#facc15';
         ctx.beginPath(); ctx.arc(r.x, r.y, 8, 0, Math.PI*2); ctx.fill();
     });
 
-    // Bases
     function drawBase(bx, by) {
         ctx.save(); ctx.translate(bx, by);
         let pulse = Math.sin(Date.now() / 300) * 5;
@@ -1056,18 +1110,21 @@ function draw() {
     drawBase(gameData.baseX, gameData.baseY);
     if (isMultiplayer) drawBase(myRole === 'p1' ? 3000 : 0, myRole === 'p1' ? 3000 : 0);
 
-    // Engineer Marker
     if (gameData.markerPos) {
         ctx.strokeStyle = '#06b6d4'; ctx.setLineDash([5, 5]); ctx.lineWidth = 2;
         ctx.beginPath(); ctx.arc(gameData.markerPos.x, gameData.markerPos.y, 30, 0, Math.PI*2); ctx.stroke();
         ctx.setLineDash([]);
     }
 
-    // Entities
     turrets.forEach(t => t.draw(ctx));
     clones.forEach(c => c.draw(ctx));
     if (player && player.active) player.draw(ctx);
     
+    laserBeams.forEach(l => {
+        ctx.strokeStyle = `rgba(239, 68, 68, ${l.life/15})`; ctx.lineWidth = 4;
+        ctx.beginPath(); ctx.moveTo(l.x1, l.y1); ctx.lineTo(l.x2, l.y2); ctx.stroke();
+    });
+
     shockwaves.forEach(s => {
         ctx.strokeStyle = `rgba(56, 189, 248, ${s.life/s.maxLife})`; ctx.lineWidth = 4;
         ctx.beginPath(); ctx.arc(s.x, s.y, s.radius, 0, Math.PI*2); ctx.stroke();
@@ -1084,15 +1141,10 @@ function draw() {
     ctx.globalAlpha = 1.0;
     ctx.restore();
 
-    // ==========================================
-    // Fog of War Overlay (离屏渲染修复)
-    // ==========================================
-    // 1. 在虚拟迷雾画布上涂满半透明黑色
     fogCtx.globalCompositeOperation = 'source-over';
     fogCtx.fillStyle = 'rgba(0, 0, 0, 0.9)'; 
     fogCtx.fillRect(0, 0, fogCanvas.width, fogCanvas.height);
     
-    // 2. 切换为擦除模式，准备在虚拟画布上“挖洞”
     fogCtx.globalCompositeOperation = 'destination-out'; 
     
     function drawVision(wx, wy, radius) {
@@ -1109,20 +1161,15 @@ function draw() {
         fogCtx.fill();
     }
 
-    // 给予视野
     drawVision(gameData.baseX, gameData.baseY, CONFIG.FOG_RADIUS_BASE);
     if(player) drawVision(player.x, player.y, CONFIG.FOG_RADIUS_PLAYER);
     clones.forEach(c => drawVision(c.x, c.y, CONFIG.FOG_RADIUS_CLONE));
     turrets.forEach(t => drawVision(t.x, t.y, 400));
     if (isMultiplayer) drawVision(myRole === 'p1' ? 3000 : 0, myRole === 'p1' ? 3000 : 0, CONFIG.FOG_RADIUS_BASE);
     
-    // 3. 将带有透明洞的迷雾盖到我们的主画布上
     ctx.globalCompositeOperation = 'source-over';
     ctx.drawImage(fogCanvas, 0, 0);
 
-    // ==========================================
-    // Minimap Rendering (圆形小地图)
-    // ==========================================
     ctx.save();
     
     const MINIMAP_RADIUS = 100;
@@ -1132,7 +1179,6 @@ function draw() {
 
     ctx.translate(mmCenterX, mmCenterY);
     
-    // 背景与圆形裁剪
     ctx.beginPath();
     ctx.arc(0, 0, MINIMAP_RADIUS, 0, Math.PI * 2);
     ctx.clip();
@@ -1140,7 +1186,6 @@ function draw() {
     ctx.fillStyle = 'rgba(15, 23, 42, 0.8)';
     ctx.fill();
 
-    // 绘制小地图网格
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
     ctx.lineWidth = 1;
     let gridStep = 1000 * minimapZoom;
@@ -1158,22 +1203,19 @@ function draw() {
     }
     ctx.stroke();
 
-    // 绘制小地图元素
     function drawMiniEntity(x, y, color, size) {
         let mx = (x - camCenterX) * minimapZoom;
         let my = (y - camCenterY) * minimapZoom;
-        if (mx*mx + my*my > MINIMAP_RADIUS * MINIMAP_RADIUS) return; // 剔除圈外点
+        if (mx*mx + my*my > MINIMAP_RADIUS * MINIMAP_RADIUS) return; 
         ctx.fillStyle = color;
         ctx.beginPath();
         ctx.arc(mx, my, size, 0, Math.PI*2);
         ctx.fill();
     }
 
-    // 基地
     drawMiniEntity(gameData.baseX, gameData.baseY, '#22c55e', 4);
     if(isMultiplayer) drawMiniEntity(myRole === 'p1' ? 3000 : 0, myRole === 'p1' ? 3000 : 0, '#22c55e', 4);
 
-    // 实体
     resources.forEach(r => drawMiniEntity(r.x, r.y, '#facc15', 1.5));
     turrets.forEach(t => drawMiniEntity(t.x, t.y, '#eab308', 2));
     enemies.forEach(e => drawMiniEntity(e.x, e.y, '#ef4444', 2.5));
@@ -1183,14 +1225,12 @@ function draw() {
     
     if(gameData.markerPos) drawMiniEntity(gameData.markerPos.x, gameData.markerPos.y, '#06b6d4', 3);
 
-    // 玩家视野框 (大致区域)
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
     ctx.lineWidth = 1;
     ctx.strokeRect(-canvas.width/2 * minimapZoom, -canvas.height/2 * minimapZoom, canvas.width * minimapZoom, canvas.height * minimapZoom);
 
-    ctx.restore(); // 退出裁剪区
+    ctx.restore(); 
     
-    // 绘制小地图边框和缩放提示
     ctx.save();
     ctx.translate(mmCenterX, mmCenterY);
     ctx.beginPath();
@@ -1214,7 +1254,6 @@ function applyScreenShake() {
     }
 }
 
-// Init Game Loop
 requestAnimationFrame(gameLoop);
 </script>
 </body>
