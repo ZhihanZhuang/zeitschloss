@@ -33,7 +33,16 @@
     
     <!-- Top HUD -->
     <div class="ui-layer">
-        <div class="flex justify-between items-start w-full max-w-[1400px] mx-auto">
+        <div class="flex justify-between items-start w-full max-w-[1400px] mx-auto relative">
+            
+            <!-- BOSS HP BAR -->
+            <div id="ui-boss-container" class="absolute top-16 left-1/2 transform -translate-x-1/2 w-1/2 hidden flex-col items-center z-10 pointer-events-none transition-opacity duration-300">
+                <span id="ui-boss-name" class="text-red-500 font-black text-2xl mb-1 tracking-widest drop-shadow-lg" style="text-shadow: 0 0 10px rgba(239,68,68,0.8);">BOSS NAME</span>
+                <div class="w-full h-5 bg-slate-800 border-2 border-slate-600 rounded-full overflow-hidden shadow-[0_0_20px_rgba(239,68,68,0.6)]">
+                    <div id="ui-boss-hp" class="h-full bg-gradient-to-r from-red-700 to-red-500 transition-all duration-100" style="width: 100%;"></div>
+                </div>
+            </div>
+
             <div class="bg-slate-800/80 p-4 rounded-xl border border-slate-600 shadow-lg flex gap-6 pointer-events-auto">
                 <div>
                     <h1 class="text-xl font-bold text-cyan-400 mb-1" id="ui-title">Time Loop Defense</h1>
@@ -59,10 +68,12 @@
         
         <div class="flex justify-center w-full mt-auto">
             <div class="bg-slate-800/80 px-6 py-3 rounded-t-2xl border-t border-l border-r border-slate-600 text-center shadow-[0_-10px_20px_rgba(0,0,0,0.3)]">
-                <p class="text-slate-400 text-sm mb-1">基地核心完整度 (回溯恢复75%)</p>
+                <p class="text-slate-400 text-sm mb-1" id="ui-base-hp-text">基地核心完整度</p>
                 <div class="flex items-center gap-3">
-                    <div class="w-80 h-4 bg-slate-700 rounded-full overflow-hidden shadow-inner">
-                        <div id="ui-hp-bar" class="h-full bg-green-500 transition-all duration-200" style="width: 100%;"></div>
+                    <div class="w-80 h-4 bg-slate-700 rounded-full overflow-hidden shadow-inner relative">
+                        <!-- Shield Overlay inside HP bar -->
+                        <div id="ui-shield-bar" class="absolute top-0 left-0 h-full bg-blue-500 transition-all duration-200 z-10 opacity-80" style="width: 0%;"></div>
+                        <div id="ui-hp-bar" class="h-full bg-green-500 transition-all duration-200 relative z-0" style="width: 100%;"></div>
                     </div>
                     <span id="ui-hp" class="font-bold text-green-400 min-w-[50px]">100%</span>
                 </div>
@@ -74,17 +85,17 @@
     <!-- Start Screen -->
     <div id="screen-start" class="overlay">
         <h1 class="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600 mb-4 tracking-wider">时间回溯策略塔防</h1>
-        <h2 class="text-2xl font-bold text-slate-300 mb-8 tracking-widest">无限探索 × 战争迷雾 × 时间线交织</h2>
+        <h2 class="text-2xl font-bold text-slate-300 mb-8 tracking-widest">肉鸽强化 × 战争迷雾 × 时间线交织</h2>
         
         <div class="flex gap-6 mt-4">
             <button id="btn-start-sp" class="px-8 py-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xl font-bold rounded-2xl shadow-[0_0_20px_rgba(6,182,212,0.5)] transform transition hover:scale-105 border border-cyan-400/50">
-                开始单机生存<br><span class="text-sm font-normal text-cyan-200">20秒循环 / 无尽防守</span>
+                开始单机生存<br><span class="text-sm font-normal text-cyan-200">动态循环时间 / 无尽防守</span>
             </button>
             <button id="btn-open-bestiary" class="px-8 py-4 bg-slate-700 hover:bg-slate-600 text-white text-xl font-bold rounded-2xl shadow-lg transform transition hover:scale-105 border border-slate-500">
                 查看敌方图鉴<br><span class="text-sm font-normal text-slate-300">战前情报终端</span>
             </button>
             <button id="btn-start-mp" class="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white text-xl font-bold rounded-2xl shadow-[0_0_20px_rgba(168,85,247,0.5)] transform transition hover:scale-105 border border-purple-400/50">
-                1v1 联机对战<br><span class="text-sm font-normal text-purple-200">45秒循环 / 异步时间线</span>
+                1v1 联机对战<br><span class="text-sm font-normal text-purple-200">异步时间线机制</span>
             </button>
         </div>
     </div>
@@ -96,9 +107,7 @@
                 <h2 class="text-3xl font-bold text-cyan-400">威胁档案终端 - 敌方图鉴</h2>
                 <button id="btn-close-bestiary" class="px-6 py-2 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded shadow-lg transform transition hover:scale-105">返回主菜单</button>
             </div>
-            <div class="flex-1 overflow-y-auto pr-2 grid grid-cols-2 lg:grid-cols-3 gap-4" id="bestiary-container">
-                <!-- Injected via JS -->
-            </div>
+            <div class="flex-1 overflow-y-auto pr-2 grid grid-cols-2 lg:grid-cols-3 gap-4" id="bestiary-container"></div>
         </div>
     </div>
 
@@ -119,18 +128,32 @@
     <!-- Class Selection / Shop Screen -->
     <div id="screen-shop" class="overlay hidden">
         <div class="w-full max-w-6xl bg-slate-800/95 border border-slate-600 rounded-2xl p-6 shadow-2xl flex flex-col max-h-[90vh]">
-            <div class="flex justify-between items-center border-b border-slate-600 pb-4 mb-4">
+            <div class="flex justify-between items-center border-b border-slate-600 pb-4 mb-4 shrink-0">
                 <h2 class="text-3xl font-bold text-cyan-400">时间间隙 - 下一轮回溯准备</h2>
                 <div class="text-2xl font-bold text-yellow-400 flex items-center gap-2">
                     <span class="w-5 h-5 bg-yellow-400 rounded-full inline-block shadow-[0_0_10px_#facc15]"></span>
                     <span id="shop-coins">0</span>
                 </div>
             </div>
-            <div class="flex-1 overflow-y-auto pr-2">
-                <h3 class="text-xl text-slate-300 mb-4">选择你的下一次化身</h3>
-                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4" id="class-container"></div>
+            
+            <!-- 分为两块区域：强化 与 兵种 -->
+            <div class="flex-1 overflow-y-auto pr-2 flex flex-col gap-6">
+                <!-- 随机强化区 -->
+                <div>
+                    <h3 class="text-xl text-slate-300 mb-3 border-b border-slate-600 pb-2">随机战备强化 <span class="text-sm text-slate-400">(消耗金币购买，每次回溯刷新)</span></h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="upgrades-container">
+                        <!-- Upgrades injected via JS -->
+                    </div>
+                </div>
+
+                <!-- 兵种选择区 -->
+                <div>
+                    <h3 class="text-xl text-slate-300 mb-3 border-b border-slate-600 pb-2">选择你的下一次化身</h3>
+                    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4" id="class-container"></div>
+                </div>
             </div>
-            <div class="mt-6 text-center border-t border-slate-600 pt-6">
+
+            <div class="mt-6 text-center border-t border-slate-600 pt-6 shrink-0">
                 <button id="btn-next-loop" class="px-16 py-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white text-2xl font-bold rounded-full shadow-[0_0_20px_rgba(16,185,129,0.4)] transform transition hover:scale-105">
                     进入第 2 轮循环
                 </button>
@@ -160,20 +183,18 @@ import { getFirestore, collection, doc, getDocs, onSnapshot, updateDoc, setDoc }
 // Game Configuration & State
 // ==========================================
 const CONFIG = {
-    FPS: 60, BASE_RADIUS: 45, BASE_HP_MAX: 1500, PLAYER_SPEED: 4.5, PLAYER_RADIUS: 15,
+    FPS: 60, BASE_RADIUS: 45, PLAYER_SPEED: 4.5, PLAYER_RADIUS: 15,
     FOG_RADIUS_PLAYER: 500, FOG_RADIUS_BASE: 700, FOG_RADIUS_CLONE: 300
 };
 
 const STATE = { START: 0, MATCHMAKING: 1, SHOP: 2, PLAYING: 3, SYNCING: 4, GAMEOVER: 5, BESTIARY: 6 };
 let gameState = STATE.START;
 let isMultiplayer = false;
+let baseTimeLimit = 20; 
 let waveTimeLimit = 20; 
 let maxTicks = 0;
 
-let gameData = {
-    wave: 1, tick: 0, pastLoops: [], myPastLoops: [], currentLoopData: { classType: '', trajectory: [] },
-    baseHp: CONFIG.BASE_HP_MAX, baseX: 0, baseY: 0, coins: 200, markerPos: null
-};
+let gameData = null; // 初始化在 initGameData 中
 
 // Player Classes
 const CLASSES = {
@@ -187,7 +208,7 @@ const CLASSES = {
     flame: { name: "喷火兵", desc: "喷射锥形穿透火焰，群体杀伤。" },
     shotgun: { name: "战壕兵", desc: "霰弹枪，近战极高爆发，散射弹片。" },
     shield: { name: "盾兵", desc: "举盾时减速，弹开撞击的敌人并格挡伤害。" },
-    commissar: { name: "政委", desc: "手枪射击(10发换弹1s)。释放光环，提升范围内所有分身1.5倍伤害。" },
+    commissar: { name: "政委", desc: "手枪射击。释放光环，提升范围内所有分身1.5倍伤害。" },
     sniper: { name: "狙击手", desc: "长按锁定，0.5秒蓄力后发射无视血量100%必杀狙击弹。" }
 };
 let selectedClass = 'assault';
@@ -195,11 +216,11 @@ let selectedClass = 'assault';
 // Enemy Types Bestiary Config
 const ENEMY_TYPES = {
     xeno: { name: "Xeno (普通异体)", color: "#ef4444", shape: "circle", desc: "普通近战异体，缺乏心智，无视其他目标，眼中只有核心基地。" },
-    typeX: { name: "Type X (射击精英)", color: "#f97316", shape: "square", desc: "掌握了射击能力的精英异体，会停下脚步，优先攻击距离自己最近的单位或建筑。" },
-    duke: { name: "Duke (毁灭公爵)", color: "#8b5cf6", shape: "rect", desc: "体型庞大的紫色巨兽。移动缓慢但拥有极高HP。直奔基地，但会毫不留情地停下摧毁挡在路径上的炮塔和单位。" },
-    fanatis: { name: "Fanatis (狂热者)", color: "#06b6d4", shape: "triangle", desc: "蓝色诡异异体，拥有超快的移动速度。极具攻击性，会扑向最近的单位进行低伤害但极高频的撕咬。" },
-    mp: { name: "变异宪兵 (MP)", color: "#64748b", shape: "circle-dot", desc: "被感染的旧日士兵，保留了冲锋枪。身边没有敌军时会朝基地方向疯狂盲射压制；一旦有单位靠近，则会精确集火该单位。" },
-    emperor: { name: "帝皇 (Emperor)", color: "#eab308", shape: "hexagon", desc: "移动缓慢、射程极短的重型炮兵。一旦有单位进入射程，它会停顿并轰出极具毁灭性的大范围爆炸炮弹。" }
+    typeX: { name: "Type X (射击精英)", color: "#f97316", shape: "square", desc: "掌握了射击能力，会停下脚步，优先攻击距离最近的单位或建筑。" },
+    duke: { name: "Duke (毁灭公爵)", color: "#8b5cf6", shape: "rect", desc: "体型庞大的紫色巨兽。移动缓慢。直奔基地，会停下摧毁挡在路径上的炮塔和单位。" },
+    fanatis: { name: "Fanatis (狂热者)", color: "#06b6d4", shape: "triangle", desc: "蓝色诡异异体，超快移速。会扑向最近的单位进行低伤极高频的撕咬。" },
+    mp: { name: "变异宪兵 (MP)", color: "#64748b", shape: "circle-dot", desc: "身边没敌军时朝基地盲射；有单位靠近则会精确集火。" },
+    emperor: { name: "帝皇 (Emperor)", color: "#eab308", shape: "hexagon", desc: "射程极短的重型炮兵。停顿轰出毁灭性大范围爆炸炮弹。" }
 };
 
 // Engine State
@@ -224,8 +245,36 @@ let seed = 1;
 function random() { let x = Math.sin(seed++) * 10000; return x - Math.floor(x); }
 
 // ==========================================
-// Initialization & Listeners
+// Base Initialization
 // ==========================================
+function initGameData() {
+    let classMods = {};
+    Object.keys(CLASSES).forEach(c => { classMods[c] = { dmg: 1, hp: 1 }; });
+    return {
+        wave: 1, tick: 0, pastLoops: [], myPastLoops: [], currentLoopData: { classType: '', trajectory: [] },
+        maxBaseHp: 1500, baseHp: 1500, shieldHp: 0, maxShieldHp: 0,
+        baseX: 0, baseY: 0, coins: 200, markerPos: null,
+        bossSpawnedThisWave: false,
+        upgrades: { baseTurret: 0, baseTrench: 0, classMods: classMods }
+    };
+}
+gameData = initGameData();
+
+function damageBase(amt) {
+    if (gameData.shieldHp > 0) {
+        gameData.shieldHp -= amt;
+        if (gameData.shieldHp < 0) {
+            gameData.baseHp += gameData.shieldHp; // overflow damage goes to base
+            gameData.shieldHp = 0;
+        }
+    } else {
+        gameData.baseHp -= amt;
+    }
+    screenShake = 10;
+    if(gameData.baseHp <= 0) gameState = STATE.GAMEOVER;
+}
+
+// Listeners
 function resize() {
     canvas.width = window.innerWidth; canvas.height = window.innerHeight;
     fogCanvas.width = window.innerWidth; fogCanvas.height = window.innerHeight;
@@ -266,8 +315,7 @@ function initBestiary() {
     container.innerHTML = '';
     Object.keys(ENEMY_TYPES).forEach(k => {
         let type = ENEMY_TYPES[k];
-        let div = document.createElement('div');
-        div.className = 'enemy-card';
+        let div = document.createElement('div'); div.className = 'enemy-card';
         div.innerHTML = `
             <div class="enemy-card-title">
                 <span style="display:inline-block; width:20px; height:20px; background-color:${type.color}; border-radius:${type.shape==='circle'?'50%':(type.shape==='triangle'?'0':'4px')}; box-shadow: 0 0 8px ${type.color}"></span>
@@ -292,7 +340,7 @@ document.getElementById('btn-close-bestiary').onclick = () => {
 };
 
 // ==========================================
-// Multiplayer Firebase Logic (Kept Intact)
+// Multiplayer Firebase Logic
 // ==========================================
 let db, auth, userId, roomId = null, roomRef = null, myRole = null;
 let unsubscribeRoom = null;
@@ -390,7 +438,10 @@ class PlayerUnit {
         this.active = true; this.angle = 0; this.cooldown = 0; this.fireTimer = 0;
         this.myDogs = 0; this.buildTimer = 0; this.ammo = 10; this.reloadTimer = 0;
         this.aimTimer = 0; this.aimTarget = null; this.buffed = false;
-        this.hp = 100; // Players/Clones now have HP conceptually but we use it for targetability. If HP<=0 active=false.
+        
+        let mod = gameData.upgrades.classMods[classType] || { dmg: 1, hp: 1 };
+        this.hp = 100 * mod.hp; 
+        this.maxHp = this.hp;
     }
 
     update(state) {
@@ -398,11 +449,13 @@ class PlayerUnit {
         this.x = state.x; this.y = state.y; this.angle = state.angle; this.isFiring = state.firing; 
         if (this.cooldown > 0) this.cooldown--;
 
-        // Commissar Buff Check
+        // Class Modifiers & Buffs
+        let classMod = gameData.upgrades.classMods[this.classType] || { dmg: 1, hp: 1 };
         this.buffed = false;
         let allUnits = [player, ...clones].filter(u => u && u.active);
         for(let u of allUnits) { if (u.classType === 'commissar' && dist(this.x, this.y, u.x, u.y) < 250) { this.buffed = true; break; } }
-        let dmgMult = this.buffed ? 1.5 : 1;
+        
+        let dmgMult = (this.buffed ? 1.5 : 1) * classMod.dmg;
 
         // Combat logic
         if (this.classType === 'assault') {
@@ -414,17 +467,17 @@ class PlayerUnit {
         } 
         else if (this.classType === 'grenadier') {
             if (state.firing && this.cooldown === 0) {
-                bullets.push(new Grenade(this.x, this.y, state.tX, state.tY, this.isClone, this.buffed)); this.cooldown = 75;
+                bullets.push(new Grenade(this.x, this.y, state.tX, state.tY, this.isClone, this.buffed, dmgMult)); this.cooldown = 75;
             }
         }
         else if (this.classType === 'scout') {
             if (state.firing && this.cooldown === 0) {
-                bullets.push(new TimeBomb(this.x, this.y, this.isClone, this.buffed)); this.cooldown = 40;
+                bullets.push(new TimeBomb(this.x, this.y, this.isClone, this.buffed, dmgMult)); this.cooldown = 40;
             }
         }
         else if (this.classType === 'handler') {
             if (gameData.tick % 90 === 0 && this.myDogs < 3) {
-                dogs.push(new Dog(this.x, this.y, this.isClone, this)); this.myDogs++;
+                dogs.push(new Dog(this.x, this.y, this.isClone, this, dmgMult)); this.myDogs++;
             }
         }
         else if (this.classType === 'shockwave') {
@@ -478,7 +531,7 @@ class PlayerUnit {
                     this.aimTimer++;
                     if (this.aimTimer >= 30) {
                         laserBeams.push({ x1: this.x, y1: this.y, x2: this.aimTarget.x, y2: this.aimTarget.y, life: 15 });
-                        this.aimTarget.hp = -9999; createParticles(this.aimTarget.x, this.aimTarget.y, '#ef4444', 30, 3);
+                        this.aimTarget.hp = -999999; createParticles(this.aimTarget.x, this.aimTarget.y, '#ef4444', 30, 3);
                         this.aimTimer = 0; this.cooldown = 120;
                     }
                 }
@@ -569,8 +622,8 @@ class Bullet {
 }
 
 class Grenade {
-    constructor(x, y, tX, tY, isClone, isBuffed=false) {
-        this.x = x; this.y = y; this.isClone = isClone; this.active = true; this.isBuffed = isBuffed;
+    constructor(x, y, tX, tY, isClone, isBuffed=false, dmgMult=1) {
+        this.x = x; this.y = y; this.isClone = isClone; this.active = true; this.isBuffed = isBuffed; this.dmgMult = dmgMult;
         let dx = tX - x, dy = tY - y; let d = Math.sqrt(dx*dx + dy*dy); let speed = 10; 
         this.life = d / speed; this.maxLife = this.life; this.vx = (dx/d)*speed; this.vy = (dy/d)*speed;
     }
@@ -579,33 +632,33 @@ class Grenade {
         if(this.life <= 0) {
             this.active = false; createParticles(this.x, this.y, '#ea580c', 40, 2, 1.5); 
             ctx.fillStyle = 'rgba(234, 88, 12, 0.2)'; ctx.fillRect(0,0,canvas.width,canvas.height); screenShake = 15;
-            enemies.forEach(e => { if(e.active && dist(this.x, this.y, e.x, e.y) < 180) e.hp -= 150 * (this.isBuffed ? 1.5 : 1); });
+            enemies.forEach(e => { if(e.active && dist(this.x, this.y, e.x, e.y) < 180) e.hp -= 150 * (this.isBuffed ? 1.5 : 1) * this.dmgMult; });
         }
     }
     draw(ctx) { let s = 1 + Math.sin((this.life/this.maxLife)*Math.PI)*0.8; ctx.fillStyle = '#ea580c'; ctx.beginPath(); ctx.arc(this.x, this.y, 6*s, 0, Math.PI*2); ctx.fill(); }
 }
 
 class TimeBomb {
-    constructor(x, y, isClone, isBuffed=false) { this.x = x; this.y = y; this.isClone = isClone; this.active = true; this.life = 120; this.isBuffed = isBuffed; }
+    constructor(x, y, isClone, isBuffed=false, dmgMult=1) { this.x = x; this.y = y; this.isClone = isClone; this.active = true; this.life = 120; this.isBuffed = isBuffed; this.dmgMult = dmgMult; }
     update() {
         this.life--;
         if(this.life <= 0) {
             this.active = false; createParticles(this.x, this.y, '#ef4444', 30, 2);
-            enemies.forEach(e => { if(e.active && dist(this.x, this.y, e.x, e.y) < 100) e.hp -= 80 * (this.isBuffed ? 1.5 : 1); });
+            enemies.forEach(e => { if(e.active && dist(this.x, this.y, e.x, e.y) < 100) e.hp -= 80 * (this.isBuffed ? 1.5 : 1) * this.dmgMult; });
         }
     }
     draw(ctx) { ctx.fillStyle = (this.life%10 < 5) ? '#ef4444' : '#333'; ctx.beginPath(); ctx.arc(this.x, this.y, 8, 0, Math.PI*2); ctx.fill(); }
 }
 
 class Dog {
-    constructor(x, y, isClone, owner) { this.x = x; this.y = y; this.isClone = isClone; this.owner = owner; this.active = true; this.speed = 3.5; this.life = 600; }
+    constructor(x, y, isClone, owner, dmgMult=1) { this.x = x; this.y = y; this.isClone = isClone; this.owner = owner; this.active = true; this.speed = 3.5; this.life = 600; this.dmgMult = dmgMult; }
     update() {
         this.life--; if(this.life <= 0) { this.active = false; this.owner.myDogs--; return; }
         let closest = null, minDist = Infinity;
         enemies.forEach(e => { let d = dist(this.x, this.y, e.x, e.y); if(e.active && d < minDist) { minDist = d; closest = e; } });
         if (closest) {
             let a = Math.atan2(closest.y - this.y, closest.x - this.x); this.x += Math.cos(a)*this.speed; this.y += Math.sin(a)*this.speed;
-            if (minDist < 20) { closest.hp -= 2; closest.slowTime = 60; createParticles(this.x, this.y, '#ef4444', 1, 0.5); }
+            if (minDist < 20) { closest.hp -= 2 * this.dmgMult; closest.slowTime = 60; createParticles(this.x, this.y, '#ef4444', 1, 0.5); }
         }
     }
     draw(ctx) { ctx.fillStyle = '#8b5cf6'; ctx.shadowBlur = 5; ctx.shadowColor = '#8b5cf6'; ctx.beginPath(); ctx.arc(this.x, this.y, 6, 0, Math.PI*2); ctx.fill(); }
@@ -631,7 +684,7 @@ class Turret {
 
 // 敌方类重构 - 支持多品种 AI
 class Enemy {
-    constructor(wave, targetBaseX, targetBaseY, spawnX = null, spawnY = null, type = 'xeno') {
+    constructor(wave, targetBaseX, targetBaseY, spawnX = null, spawnY = null, type = 'xeno', isBoss = false) {
         if (spawnX !== null && spawnY !== null) { this.x = spawnX; this.y = spawnY; } 
         else { let a = random() * Math.PI * 2; let d = 1000 + random() * 500; this.x = targetBaseX + Math.cos(a)*d; this.y = targetBaseY + Math.sin(a)*d; }
         
@@ -640,6 +693,7 @@ class Enemy {
         
         // Default base target
         this.baseX = targetBaseX; this.baseY = targetBaseY;
+        this.isBoss = isBoss;
 
         // Stats Assignment
         if(type === 'xeno') { this.radius = 16; this.speed = 1.2 + wave*0.1; this.hp = 40 + wave*20; this.color = ENEMY_TYPES.xeno.color; this.shape = ENEMY_TYPES.xeno.shape; }
@@ -648,6 +702,13 @@ class Enemy {
         else if(type === 'fanatis') { this.radius = 12; this.speed = 2.2 + wave*0.15; this.hp = 20 + wave*10; this.color = ENEMY_TYPES.fanatis.color; this.shape = ENEMY_TYPES.fanatis.shape; }
         else if(type === 'mp') { this.radius = 15; this.speed = 0.8 + wave*0.05; this.hp = 50 + wave*20; this.color = ENEMY_TYPES.mp.color; this.shape = ENEMY_TYPES.mp.shape; this.burstTimer = 0; this.burstShots = 0; this.burstCd = 0; }
         else if(type === 'emperor') { this.radius = 22; this.speed = 0.3 + wave*0.02; this.hp = 150 + wave*50; this.color = ENEMY_TYPES.emperor.color; this.shape = ENEMY_TYPES.emperor.shape; this.fireTimer = 0; }
+        
+        if (this.isBoss) {
+            this.radius *= 3;
+            this.hp *= 15;
+            this.speed *= 0.6;
+            this.name = "★ " + (ENEMY_TYPES[type]?.name || "UNKNOWN") + " ★";
+        }
         
         this.maxHp = this.hp;
     }
@@ -664,11 +725,18 @@ class Enemy {
     }
 
     update() {
-        if (this.hp <= 0) { this.active = false; createParticles(this.x, this.y, this.color, 15); return; }
-        if (this.stunTime > 0) { this.stunTime--; return; }
+        if (this.hp <= 0) { this.active = false; createParticles(this.x, this.y, this.color, this.isBoss ? 50 : 15); return; }
+        if (this.stunTime > 0 && !this.isBoss) { this.stunTime--; return; }
 
         let s = this.speed;
-        if (this.slowTime > 0) { this.slowTime--; s *= 0.4; }
+        
+        // Base Trench slow effect check
+        let bDx = this.baseX - this.x, bDy = this.baseY - this.y, bDist = Math.sqrt(bDx*bDx + bDy*bDy);
+        if (gameData.upgrades.baseTrench > 0 && bDist < 100 + gameData.upgrades.baseTrench * 30) {
+            s *= 0.5; 
+        } else if (this.slowTime > 0 && !this.isBoss) { 
+            this.slowTime--; s *= 0.4; 
+        }
 
         // AI Logic Branching
         let targetX = this.baseX, targetY = this.baseY;
@@ -679,7 +747,6 @@ class Enemy {
         let dx = 0, dy = 0, d = 1;
 
         if (this.type === 'xeno') {
-            // Just move to base
             dx = this.baseX - this.x; dy = this.baseY - this.y; d = Math.sqrt(dx*dx + dy*dy);
             if (d > 0) { this.x += (dx/d)*s; this.y += (dy/d)*s; }
         } 
@@ -689,25 +756,22 @@ class Enemy {
             
             if (d > 250) { this.x += (dx/d)*s; this.y += (dy/d)*s; } // Move closer
             
-            // Attack
             if (this.fireTimer > 0) this.fireTimer--;
             if (d <= 300 && this.fireTimer <= 0) {
                 bullets.push(new Bullet(this.x, this.y, Math.atan2(dy, dx), false, 10, 8, 'enemy'));
-                this.fireTimer = 90; // 1.5s
+                this.fireTimer = 90; 
             }
         }
         else if (this.type === 'duke') {
-            // Move to base, but stop to crush if hitting unit
-            if (this.crushTimer > 0) { this.crushTimer--; return; } // Stopping to crush
+            if (this.crushTimer > 0) { this.crushTimer--; return; } 
             
             dx = this.baseX - this.x; dy = this.baseY - this.y; d = Math.sqrt(dx*dx + dy*dy);
             
             if (nUnit && nDist < this.radius + 20) {
-                // Crush
-                this.crushTimer = 60; // Stop for 1s
+                this.crushTimer = 60; 
                 createParticles(this.x, this.y, '#8b5cf6', 10);
                 if (nUnit instanceof Turret) nUnit.hp -= 100;
-                else nUnit.hp -= 40; // Player/Clone
+                else nUnit.hp -= 40; 
             } else if (d > 0) {
                 this.x += (dx/d)*s; this.y += (dy/d)*s;
             }
@@ -717,23 +781,21 @@ class Enemy {
             dx = targetX - this.x; dy = targetY - this.y; d = Math.sqrt(dx*dx + dy*dy);
             if (d > 0) { this.x += (dx/d)*s; this.y += (dy/d)*s; }
             
-            if (nUnit && nDist < this.radius + 15) { nUnit.hp -= 0.5; } // Constant low tick damage
+            if (nUnit && nDist < this.radius + 15) { nUnit.hp -= 0.5; } 
         }
         else if (this.type === 'mp') {
-            // Check radius for friendly units
             let hasTarget = (nUnit && nDist < 400);
             if (hasTarget) { targetX = nUnit.x; targetY = nUnit.y; }
             
             dx = targetX - this.x; dy = targetY - this.y; d = Math.sqrt(dx*dx + dy*dy);
-            if (d > 200) { this.x += (dx/d)*s; this.y += (dy/d)*s; } // Move slowly towards target/base
+            if (d > 200) { this.x += (dx/d)*s; this.y += (dy/d)*s; } 
 
-            // Burst logic
             if (this.burstCd > 0) this.burstCd--;
             if (this.burstCd <= 0 && this.burstShots <= 0) { this.burstShots = 4; this.burstCd = 120; }
             
             if (this.burstShots > 0) {
                 if (this.burstTimer <= 0) {
-                    let spread = hasTarget ? (random()-0.5)*0.1 : (random()-0.5)*0.5; // Wild spread if no target
+                    let spread = hasTarget ? (random()-0.5)*0.1 : (random()-0.5)*0.5; 
                     bullets.push(new Bullet(this.x, this.y, Math.atan2(dy, dx) + spread, false, 5, 10, 'enemy_burst'));
                     this.burstShots--; this.burstTimer = 8;
                 } else this.burstTimer--;
@@ -748,22 +810,20 @@ class Enemy {
             if (this.fireTimer > 0) this.fireTimer--;
             if (nUnit && d <= 250 && this.fireTimer <= 0) {
                 bullets.push(new Bullet(this.x, this.y, Math.atan2(dy, dx), false, 50, 4, 'enemy_artillery'));
-                this.fireTimer = 180; // 3s reload
+                this.fireTimer = 180; 
             }
         }
 
-        // Base Collision (All enemies damage base if they touch it)
-        let bDx = this.baseX - this.x, bDy = this.baseY - this.y, bDist = Math.sqrt(bDx*bDx + bDy*bDy);
+        // Base Collision 
         if (bDist < CONFIG.BASE_RADIUS + this.radius) {
             this.active = false; createParticles(this.x, this.y, this.color, 20);
-            gameData.baseHp -= this.maxHp * 0.5; screenShake = 10;
-            if(gameData.baseHp <= 0) gameState = STATE.GAMEOVER;
+            damageBase(this.maxHp * (this.isBoss ? 2.0 : 0.5));
         }
     }
 
     draw(ctx) {
-        ctx.fillStyle = (this.stunTime > 0) ? '#eab308' : ((this.slowTime > 0) ? '#60a5fa' : this.color);
-        ctx.shadowBlur = 5; ctx.shadowColor = ctx.fillStyle;
+        ctx.fillStyle = (this.stunTime > 0 && !this.isBoss) ? '#eab308' : ((this.slowTime > 0 && !this.isBoss) ? '#60a5fa' : this.color);
+        ctx.shadowBlur = this.isBoss ? 15 : 5; ctx.shadowColor = ctx.fillStyle;
         
         ctx.save(); ctx.translate(this.x, this.y);
         
@@ -777,7 +837,7 @@ class Enemy {
         ctx.fill();
 
         // HP Bar
-        if(this.hp < this.maxHp) {
+        if(this.hp < this.maxHp && !this.isBoss) {
             ctx.fillStyle = '#333'; ctx.fillRect(-15, -this.radius-10, 30, 4);
             ctx.fillStyle = '#22c55e'; ctx.fillRect(-15, -this.radius-10, 30*(this.hp/this.maxHp), 4);
         }
@@ -789,14 +849,18 @@ class Enemy {
 // Main Logic Flow
 // ==========================================
 document.getElementById('btn-start-sp').addEventListener('click', () => {
-    isMultiplayer = false; waveTimeLimit = 20; maxTicks = waveTimeLimit * CONFIG.FPS;
+    isMultiplayer = false; 
+    baseTimeLimit = 20; waveTimeLimit = 20; maxTicks = waveTimeLimit * CONFIG.FPS;
+    gameData = initGameData();
     document.getElementById('screen-start').classList.add('hidden');
     document.getElementById('txt-mode-indicator').innerText = "单机生存模式";
     openShop();
 });
 
 document.getElementById('btn-start-mp').addEventListener('click', () => {
-    isMultiplayer = true; waveTimeLimit = 45; maxTicks = waveTimeLimit * CONFIG.FPS;
+    isMultiplayer = true; 
+    baseTimeLimit = 45; waveTimeLimit = 45; maxTicks = waveTimeLimit * CONFIG.FPS;
+    gameData = initGameData();
     document.getElementById('txt-mode-indicator').innerText = "1v1 联机对战";
     startMatchmaking();
 });
@@ -810,7 +874,76 @@ function openShop() {
     if(uiCoins) uiCoins.innerText = gameData.coins;
     
     document.getElementById('btn-next-loop').innerText = `进入第 ${gameData.wave} 轮循环`;
+    
+    renderUpgrades();
     renderClassCards();
+}
+
+function renderUpgrades() {
+    const container = document.getElementById('upgrades-container');
+    container.innerHTML = '';
+    
+    // 生成随机购买池
+    let pool = [
+        { id: 'hp', name: '基地结构修复', desc: '最大生命值+300并恢复500点', cost: 100 },
+        { id: 'turret', name: '基地自动炮塔', desc: '在基地加装一门自动火炮(可叠加)', cost: 150 }
+    ];
+    
+    if (random() > 0.3) pool.push({ id: 'trench', name: '基地战壕', desc: '在基地周围生成减速力场(可升级范围)', cost: 120 });
+    if (random() > 0.4) pool.push({ id: 'shield', name: '一回溯护盾', desc: '本轮回溯提供一个抵挡1000伤害的护盾', cost: 80 });
+    
+    let classNames = Object.keys(CLASSES);
+    let rc1 = classNames[Math.floor(random() * classNames.length)];
+    let rc2 = classNames[Math.floor(random() * classNames.length)];
+    
+    if (random() > 0.3) pool.push({ id: `dmg_${rc1}`, name: `${CLASSES[rc1].name} 武器强化`, desc: '该兵种(及对应时间分身)伤害 +30%', cost: 100, classRef: rc1, type: 'dmg' });
+    if (random() > 0.3) pool.push({ id: `hp_${rc2}`, name: `${CLASSES[rc2].name} 防护强化`, desc: '该兵种(及对应时间分身)生命 +50%', cost: 80, classRef: rc2, type: 'hp' });
+
+    // 打乱并选出3个
+    pool.sort(() => random() - 0.5);
+    let selectedUpgrades = pool.slice(0, 3);
+
+    selectedUpgrades.forEach(upg => {
+        const btn = document.createElement('button');
+        btn.className = `p-4 rounded-xl text-left bg-slate-700/80 border border-slate-500 transition ${gameData.coins < upg.cost ? 'opacity-50 cursor-not-allowed' : 'hover:bg-slate-600'}`;
+        btn.innerHTML = `<div class="font-bold text-lg text-yellow-400 mb-1 flex justify-between"><span>${upg.name}</span><span>$${upg.cost}</span></div><div class="text-sm text-slate-300">${upg.desc}</div>`;
+        
+        btn.onclick = () => {
+            if (gameData.coins >= upg.cost && !btn.classList.contains('pointer-events-none')) {
+                gameData.coins -= upg.cost;
+                
+                // 应用升级
+                if (upg.id === 'hp') {
+                    gameData.maxBaseHp += 300;
+                    gameData.baseHp = Math.min(gameData.maxBaseHp, gameData.baseHp + 500);
+                } else if (upg.id === 'turret') {
+                    gameData.upgrades.baseTurret++;
+                } else if (upg.id === 'trench') {
+                    gameData.upgrades.baseTrench++;
+                } else if (upg.id === 'shield') {
+                    gameData.shieldHp += 1000;
+                    gameData.maxShieldHp = gameData.shieldHp;
+                } else if (upg.type === 'dmg') {
+                    gameData.upgrades.classMods[upg.classRef].dmg += 0.3;
+                } else if (upg.type === 'hp') {
+                    gameData.upgrades.classMods[upg.classRef].hp += 0.5;
+                }
+
+                btn.classList.add('opacity-50', 'pointer-events-none');
+                btn.innerHTML += `<div class="mt-2 text-green-400 font-bold">已部署!</div>`;
+                document.getElementById('shop-coins').innerText = gameData.coins;
+                document.getElementById('ui-coins').innerText = gameData.coins;
+                
+                Array.from(container.children).forEach((childBtn, i) => {
+                    if (gameData.coins < selectedUpgrades[i].cost && !childBtn.classList.contains('pointer-events-none')) {
+                        childBtn.classList.add('opacity-50', 'cursor-not-allowed');
+                        childBtn.classList.remove('hover:bg-slate-600');
+                    }
+                });
+            }
+        };
+        container.appendChild(btn);
+    });
 }
 
 function renderClassCards() {
@@ -830,7 +963,11 @@ document.getElementById('btn-next-loop').addEventListener('click', () => {
     document.getElementById('screen-shop').classList.add('hidden');
     
     if (gameData.markerPos) { gameData.baseX = gameData.markerPos.x; gameData.baseY = gameData.markerPos.y; gameData.markerPos = null; }
-    gameData.baseHp = Math.min(CONFIG.BASE_HP_MAX, gameData.baseHp + CONFIG.BASE_HP_MAX * 0.75);
+    gameData.baseHp = Math.min(gameData.maxBaseHp, gameData.baseHp + gameData.maxBaseHp * 0.75);
+
+    waveTimeLimit = baseTimeLimit + (gameData.wave - 1) * 2;
+    maxTicks = waveTimeLimit * CONFIG.FPS;
+    gameData.bossSpawnedThisWave = false;
 
     seed = gameData.wave; 
     player = new PlayerUnit(gameData.baseX, gameData.baseY, selectedClass, false);
@@ -851,6 +988,7 @@ document.getElementById('btn-next-loop').addEventListener('click', () => {
 });
 
 function endWave() {
+    gameData.shieldHp = 0; // 重置一回合护盾
     if (isMultiplayer) {
         gameState = STATE.SYNCING; document.getElementById('screen-syncing').classList.remove('hidden');
         updateDoc(roomRef, { [`${myRole}Data`]: JSON.stringify(compressLoop(gameData.currentLoopData)) });
@@ -880,7 +1018,6 @@ function update() {
     }
     if (gameState !== STATE.PLAYING) return;
 
-    // Player Input
     let dx = 0, dy = 0;
     if(keys.w) dy -= 1; if(keys.s) dy += 1; if(keys.a) dx -= 1; if(keys.d) dx += 1;
     if(dx !== 0 || dy !== 0) {
@@ -907,20 +1044,29 @@ function update() {
 
     clones.forEach((c, idx) => {
         let loop = gameData.pastLoops[idx];
-        let state = loop.trajectory[gameData.tick] || loop.trajectory[maxTicks-1] || {x:c.x, y:c.y, angle:c.angle, firing:false};
+        let state = loop.trajectory[gameData.tick] || loop.trajectory[loop.trajectory.length-1] || {x:c.x, y:c.y, angle:c.angle, firing:false};
         c.update(state);
     });
 
     turrets.forEach(t => t.update());
     turrets = turrets.filter(t => t.active);
     
-    // Smart Spawn Logic with Types
+    // 基地自动炮塔逻辑
+    if (gameData.upgrades.baseTurret > 0 && gameData.tick % Math.max(15, 60 - gameData.upgrades.baseTurret * 5) === 0) {
+        let closest = null, minDist = 600;
+        enemies.forEach(e => { let d = dist(gameData.baseX, gameData.baseY, e.x, e.y); if(e.active && d < minDist) { minDist = d; closest = e; } });
+        if (closest) {
+            let a = Math.atan2(closest.y - gameData.baseY, closest.x - gameData.baseX);
+            let count = Math.min(4, Math.ceil(gameData.upgrades.baseTurret / 2));
+            for(let i=0; i<count; i++) bullets.push(new Bullet(gameData.baseX, gameData.baseY, a + (random()-0.5)*0.2, false, 25, 14, 'turret'));
+        }
+    }
+
     let spawnRate = Math.max(25, 120 - gameData.wave * 10 - gameData.pastLoops.length * 3);
     if (gameData.tick % spawnRate === 0) {
         let isSwarm = random() > 0.6; 
         let count = isSwarm ? Math.floor(random() * 4) + 3 : 1; 
 
-        // Determine available types
         let pool = ['xeno'];
         if (gameData.wave > 1) pool.push('fanatis', 'typeX');
         if (gameData.wave > 2) pool.push('mp');
@@ -935,16 +1081,17 @@ function update() {
             let eType = pool[Math.floor(random() * pool.length)];
             enemies.push(new Enemy(gameData.wave, gameData.baseX, gameData.baseY, ex, ey, eType));
         }
+    }
 
-        if (isMultiplayer) {
-            let baseA2 = random() * Math.PI * 2; let baseD2 = 1200 + random() * 600;
-            for(let i=0; i<count; i++) {
-                let a = baseA2 + (random() - 0.5) * 0.4; let d = baseD2 + (random() - 0.5) * 200;
-                let ex = 3000 + Math.cos(a)*d, ey = 3000 + Math.sin(a)*d;
-                let eType = pool[Math.floor(random() * pool.length)];
-                enemies.push(new Enemy(gameData.wave, 3000, 3000, ex, ey, eType));
-            }
+    if (gameData.wave >= 10 && !gameData.bossSpawnedThisWave && gameData.tick === 300) {
+        if (random() > 0.3) { 
+            let pool = ['xeno', 'fanatis', 'typeX', 'mp', 'duke', 'emperor'];
+            let eType = pool[Math.floor(random() * pool.length)];
+            let a = random() * Math.PI * 2; let d = 1500;
+            let ex = gameData.baseX + Math.cos(a)*d, ey = gameData.baseY + Math.sin(a)*d;
+            enemies.push(new Enemy(gameData.wave, gameData.baseX, gameData.baseY, ex, ey, eType, true));
         }
+        gameData.bossSpawnedThisWave = true;
     }
 
     bullets.forEach(b => b.update());
@@ -967,7 +1114,8 @@ function update() {
     };
     checkShield(player, mouse.down);
     clones.forEach((c, idx) => {
-        let loop = gameData.pastLoops[idx]; let state = loop.trajectory[gameData.tick] || loop.trajectory[maxTicks-1] || {firing:false};
+        let loop = gameData.pastLoops[idx]; 
+        let state = loop.trajectory[gameData.tick] || loop.trajectory[loop.trajectory.length-1] || {firing:false}; 
         checkShield(c, state.firing);
     });
     
@@ -980,35 +1128,28 @@ function update() {
     }
 
     for (let i = bullets.length - 1; i >= 0; i--) {
-        let b = bullets[i];
-        if (!b.active || b instanceof Grenade || b instanceof TimeBomb) continue;
+        let b = bullets[i]; if (!b.active || b instanceof Grenade || b instanceof TimeBomb) continue;
         
-        // Enemy Bullets logic
         if (b.type.startsWith('enemy')) {
-            if (b.type === 'enemy_artillery' && b.life === 1) { // Explode at end of life
-                createParticles(b.x, b.y, '#eab308', 20, 2);
-                screenShake = 5;
+            if (b.type === 'enemy_artillery' && b.life === 1) { 
+                createParticles(b.x, b.y, '#eab308', 20, 2); screenShake = 5;
                 if(player.active && dist(b.x, b.y, player.x, player.y) < 100) player.hp -= 50;
                 clones.forEach(c => { if(c.active && dist(b.x, b.y, c.x, c.y) < 100) c.hp -= 50; });
                 turrets.forEach(t => { if(t.active && dist(b.x, b.y, t.x, t.y) < 100) t.hp -= 100; });
+                if (dist(b.x, b.y, gameData.baseX, gameData.baseY) < 100) damageBase(150);
             } else {
-                // Check hits against player/clones/turrets
                 if(player.active && dist(b.x, b.y, player.x, player.y) < CONFIG.PLAYER_RADIUS) { player.hp -= b.dmg; b.active = false; }
                 clones.forEach(c => { if(c.active && dist(b.x, b.y, c.x, c.y) < CONFIG.PLAYER_RADIUS) { c.hp -= b.dmg; b.active = false; } });
                 turrets.forEach(t => { if(t.active && dist(b.x, b.y, t.x, t.y) < 20) { t.hp -= b.dmg; b.active = false; } });
+                if (dist(b.x, b.y, gameData.baseX, gameData.baseY) < CONFIG.BASE_RADIUS) { damageBase(b.dmg); b.active = false; }
             }
-            // Check base
-            if (dist(b.x, b.y, gameData.baseX, gameData.baseY) < CONFIG.BASE_RADIUS) { gameData.baseHp -= b.dmg; b.active = false; }
             continue;
         }
 
-        // Friendly bullets vs enemies
         for (let j = enemies.length - 1; j >= 0; j--) {
-            let e = enemies[j];
-            if (!e.active) continue;
+            let e = enemies[j]; if (!e.active) continue;
             if (dist(b.x, b.y, e.x, e.y) < e.radius + (b.type === 'flame' ? 15 : 5)) {
-                if (b.type !== 'flame') b.active = false; 
-                e.hp -= b.dmg; createParticles(b.x, b.y, '#fde047', 2);
+                if (b.type !== 'flame') b.active = false; e.hp -= b.dmg; createParticles(b.x, b.y, '#fde047', 2);
                 if (!b.active) break;
             }
         }
@@ -1021,18 +1162,38 @@ function update() {
     camera.x += (player.x - canvas.width/2 - camera.x) * 0.1;
     camera.y += (player.y - canvas.height/2 - camera.y) * 0.1;
 
+    // UI Updates
     gameData.tick++;
     if (gameData.tick % 15 === 0) {
         const uiWave = document.getElementById('ui-wave'); if(uiWave) uiWave.innerText = gameData.wave;
         const uiClones = document.getElementById('ui-clones'); if(uiClones) uiClones.innerText = gameData.pastLoops.length;
         const uiCoins = document.getElementById('ui-coins'); if(uiCoins) uiCoins.innerText = gameData.coins;
         
-        let hpPct = Math.max(0, (gameData.baseHp / CONFIG.BASE_HP_MAX) * 100);
+        let hpPct = Math.max(0, (gameData.baseHp / gameData.maxBaseHp) * 100);
         const uiHp = document.getElementById('ui-hp'); if(uiHp) uiHp.innerText = `${Math.ceil(hpPct)}%`;
         const uiHpBar = document.getElementById('ui-hp-bar');
         if(uiHpBar) {
             uiHpBar.style.width = `${hpPct}%`;
-            uiHpBar.className = `h-full transition-all duration-200 ${hpPct>60?'bg-green-500':(hpPct>30?'bg-yellow-500':'bg-red-500')}`;
+            uiHpBar.className = `h-full transition-all duration-200 relative z-0 ${hpPct>60?'bg-green-500':(hpPct>30?'bg-yellow-500':'bg-red-500')}`;
+        }
+        
+        const uiShieldBar = document.getElementById('ui-shield-bar');
+        if(uiShieldBar) {
+            if (gameData.maxShieldHp > 0 && gameData.shieldHp > 0) {
+                uiShieldBar.style.width = Math.min(100, (gameData.shieldHp / gameData.maxShieldHp) * 100) + '%';
+            } else {
+                uiShieldBar.style.width = '0%';
+            }
+        }
+
+        let activeBoss = enemies.find(e => e.isBoss && e.active);
+        const uiBossContainer = document.getElementById('ui-boss-container');
+        if (activeBoss && uiBossContainer) {
+            uiBossContainer.classList.remove('hidden'); uiBossContainer.classList.add('flex');
+            document.getElementById('ui-boss-name').innerText = activeBoss.name;
+            document.getElementById('ui-boss-hp').style.width = Math.max(0, (activeBoss.hp / activeBoss.maxHp) * 100) + '%';
+        } else if (uiBossContainer) {
+            uiBossContainer.classList.add('hidden'); uiBossContainer.classList.remove('flex');
         }
     }
     
@@ -1056,10 +1217,24 @@ function draw() {
     for(let i=startY; i<endY; i+=100) { ctx.moveTo(startX, i); ctx.lineTo(endX, i); }
     ctx.stroke();
 
+    // Draw Base Trench Upgrades
+    if (gameData.upgrades.baseTrench > 0) {
+        let tr = 100 + gameData.upgrades.baseTrench * 30;
+        ctx.fillStyle = 'rgba(60, 50, 40, 0.4)';
+        ctx.beginPath(); ctx.arc(gameData.baseX, gameData.baseY, tr, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = 'rgba(80, 70, 50, 0.6)'; ctx.stroke();
+    }
+
     resources.forEach(r => { ctx.fillStyle = '#facc15'; ctx.shadowBlur = 10; ctx.shadowColor = '#facc15'; ctx.beginPath(); ctx.arc(r.x, r.y, 8, 0, Math.PI*2); ctx.fill(); });
 
     function drawBase(bx, by) {
         ctx.save(); ctx.translate(bx, by); let pulse = Math.sin(Date.now() / 300) * 5;
+        
+        if (gameData.shieldHp > 0) {
+            ctx.strokeStyle = `rgba(59, 130, 246, ${0.5 + Math.sin(Date.now()/150)*0.3})`; ctx.lineWidth = 6;
+            ctx.beginPath(); ctx.arc(0, 0, CONFIG.BASE_RADIUS + 15, 0, Math.PI*2); ctx.stroke();
+        }
+
         ctx.fillStyle = '#22c55e'; ctx.shadowBlur = 20 + pulse; ctx.shadowColor = ctx.fillStyle;
         ctx.beginPath();
         for (let i = 0; i < 6; i++) {
@@ -1070,7 +1245,6 @@ function draw() {
     }
     
     drawBase(gameData.baseX, gameData.baseY);
-    if (isMultiplayer) drawBase(myRole === 'p1' ? 3000 : 0, myRole === 'p1' ? 3000 : 0);
 
     if (gameData.markerPos) {
         ctx.strokeStyle = '#06b6d4'; ctx.setLineDash([5, 5]); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(gameData.markerPos.x, gameData.markerPos.y, 30, 0, Math.PI*2); ctx.stroke(); ctx.setLineDash([]);
@@ -1101,7 +1275,6 @@ function draw() {
     if(player && player.active) drawVision(player.x, player.y, CONFIG.FOG_RADIUS_PLAYER);
     clones.forEach(c => { if(c.active) drawVision(c.x, c.y, CONFIG.FOG_RADIUS_CLONE); });
     turrets.forEach(t => drawVision(t.x, t.y, 400));
-    if (isMultiplayer) drawVision(myRole === 'p1' ? 3000 : 0, myRole === 'p1' ? 3000 : 0, CONFIG.FOG_RADIUS_BASE);
     
     ctx.globalCompositeOperation = 'source-over'; ctx.drawImage(fogCanvas, 0, 0);
 
@@ -1127,11 +1300,10 @@ function draw() {
     }
 
     drawMiniEntity(gameData.baseX, gameData.baseY, '#22c55e', 4);
-    if(isMultiplayer) drawMiniEntity(myRole === 'p1' ? 3000 : 0, myRole === 'p1' ? 3000 : 0, '#22c55e', 4);
 
     resources.forEach(r => drawMiniEntity(r.x, r.y, '#facc15', 1.5));
     turrets.forEach(t => drawMiniEntity(t.x, t.y, '#eab308', 2));
-    enemies.forEach(e => drawMiniEntity(e.x, e.y, e.color, 2.5)); // Color map to enemy type
+    enemies.forEach(e => drawMiniEntity(e.x, e.y, e.color, e.isBoss ? 4.5 : 2.5)); 
     clones.forEach(c => { if(c.active) drawMiniEntity(c.x, c.y, '#3b82f6', 2.5); });
     dogs.forEach(d => drawMiniEntity(d.x, d.y, '#8b5cf6', 1.5));
     if(player && player.active) drawMiniEntity(player.x, player.y, '#06b6d4', 3);
