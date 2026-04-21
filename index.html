@@ -13,11 +13,14 @@
         .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.95); display: flex; flex-direction: column; justify-content: center; align-items: center; pointer-events: auto; z-index: 20; backdrop-filter: blur(5px); }
         button, select { pointer-events: auto; }
         .scanlines { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06)); background-size: 100% 4px, 3px 100%; pointer-events: none; z-index: 5; opacity: 0.3; }
+        
         .class-card { transition: all 0.2s; border: 2px solid transparent; }
         .class-card:hover { transform: translateY(-5px); border-color: #06b6d4; box-shadow: 0 10px 20px rgba(6, 182, 212, 0.3); }
         .class-card.selected { border-color: #3b82f6; background-color: rgba(59, 130, 246, 0.2); box-shadow: 0 0 15px rgba(59, 130, 246, 0.5); }
         
-        /* Loading Spinner */
+        .enemy-card { background: rgba(30, 41, 59, 0.8); border: 1px solid #475569; border-radius: 0.5rem; padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
+        .enemy-card-title { font-weight: bold; font-size: 1.25rem; display: flex; align-items: center; gap: 0.5rem; }
+        
         .spinner { border: 4px solid rgba(255,255,255,0.1); border-left-color: #06b6d4; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
@@ -73,13 +76,29 @@
         <h1 class="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-600 mb-4 tracking-wider">时间回溯策略塔防</h1>
         <h2 class="text-2xl font-bold text-slate-300 mb-8 tracking-widest">无限探索 × 战争迷雾 × 时间线交织</h2>
         
-        <div class="flex gap-8 mt-8">
-            <button id="btn-start-sp" class="px-10 py-5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-2xl font-bold rounded-2xl shadow-[0_0_20px_rgba(6,182,212,0.5)] transform transition hover:scale-105 border border-cyan-400/50">
-                开始单机生存<br><span class="text-sm font-normal text-cyan-200">20秒循环 / 无限扩张</span>
+        <div class="flex gap-6 mt-4">
+            <button id="btn-start-sp" class="px-8 py-4 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-xl font-bold rounded-2xl shadow-[0_0_20px_rgba(6,182,212,0.5)] transform transition hover:scale-105 border border-cyan-400/50">
+                开始单机生存<br><span class="text-sm font-normal text-cyan-200">20秒循环 / 无尽防守</span>
             </button>
-            <button id="btn-start-mp" class="px-10 py-5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white text-2xl font-bold rounded-2xl shadow-[0_0_20px_rgba(168,85,247,0.5)] transform transition hover:scale-105 border border-purple-400/50">
+            <button id="btn-open-bestiary" class="px-8 py-4 bg-slate-700 hover:bg-slate-600 text-white text-xl font-bold rounded-2xl shadow-lg transform transition hover:scale-105 border border-slate-500">
+                查看敌方图鉴<br><span class="text-sm font-normal text-slate-300">战前情报终端</span>
+            </button>
+            <button id="btn-start-mp" class="px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white text-xl font-bold rounded-2xl shadow-[0_0_20px_rgba(168,85,247,0.5)] transform transition hover:scale-105 border border-purple-400/50">
                 1v1 联机对战<br><span class="text-sm font-normal text-purple-200">45秒循环 / 异步时间线</span>
             </button>
+        </div>
+    </div>
+
+    <!-- Bestiary Screen -->
+    <div id="screen-bestiary" class="overlay hidden">
+        <div class="w-full max-w-6xl bg-slate-900/95 border border-slate-600 rounded-2xl p-6 shadow-2xl flex flex-col max-h-[90vh]">
+            <div class="flex justify-between items-center border-b border-slate-600 pb-4 mb-4">
+                <h2 class="text-3xl font-bold text-cyan-400">威胁档案终端 - 敌方图鉴</h2>
+                <button id="btn-close-bestiary" class="px-6 py-2 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded shadow-lg transform transition hover:scale-105">返回主菜单</button>
+            </div>
+            <div class="flex-1 overflow-y-auto pr-2 grid grid-cols-2 lg:grid-cols-3 gap-4" id="bestiary-container">
+                <!-- Injected via JS -->
+            </div>
         </div>
     </div>
 
@@ -107,14 +126,10 @@
                     <span id="shop-coins">0</span>
                 </div>
             </div>
-
             <div class="flex-1 overflow-y-auto pr-2">
                 <h3 class="text-xl text-slate-300 mb-4">选择你的下一次化身</h3>
-                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4" id="class-container">
-                    <!-- Cards injected by JS -->
-                </div>
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4" id="class-container"></div>
             </div>
-
             <div class="mt-6 text-center border-t border-slate-600 pt-6">
                 <button id="btn-next-loop" class="px-16 py-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-500 hover:to-emerald-500 text-white text-2xl font-bold rounded-full shadow-[0_0_20px_rgba(16,185,129,0.4)] transform transition hover:scale-105">
                     进入第 2 轮循环
@@ -145,48 +160,47 @@ import { getFirestore, collection, doc, getDocs, onSnapshot, updateDoc, setDoc }
 // Game Configuration & State
 // ==========================================
 const CONFIG = {
-    FPS: 60,
-    BASE_RADIUS: 45, 
-    BASE_HP_MAX: 1500,
-    PLAYER_SPEED: 4.5, 
-    PLAYER_RADIUS: 15,
-    FOG_RADIUS_PLAYER: 500,
-    FOG_RADIUS_BASE: 700,
-    FOG_RADIUS_CLONE: 300
+    FPS: 60, BASE_RADIUS: 45, BASE_HP_MAX: 1500, PLAYER_SPEED: 4.5, PLAYER_RADIUS: 15,
+    FOG_RADIUS_PLAYER: 500, FOG_RADIUS_BASE: 700, FOG_RADIUS_CLONE: 300
 };
 
-const STATE = { START: 0, MATCHMAKING: 1, SHOP: 2, PLAYING: 3, SYNCING: 4, GAMEOVER: 5 };
+const STATE = { START: 0, MATCHMAKING: 1, SHOP: 2, PLAYING: 3, SYNCING: 4, GAMEOVER: 5, BESTIARY: 6 };
 let gameState = STATE.START;
 let isMultiplayer = false;
 let waveTimeLimit = 20; 
 let maxTicks = 0;
 
 let gameData = {
-    wave: 1, tick: 0,
-    pastLoops: [], 
-    myPastLoops: [],
-    currentLoopData: { classType: '', trajectory: [] },
-    baseHp: CONFIG.BASE_HP_MAX,
-    baseX: 0, baseY: 0,
-    coins: 200,
-    markerPos: null
+    wave: 1, tick: 0, pastLoops: [], myPastLoops: [], currentLoopData: { classType: '', trajectory: [] },
+    baseHp: CONFIG.BASE_HP_MAX, baseX: 0, baseY: 0, coins: 200, markerPos: null
 };
 
+// Player Classes
 const CLASSES = {
     assault: { name: "风暴兵", desc: "冲锋枪。连续开火2.5s后过热冷却1.5s。" },
     grenadier: { name: "掷弹兵", desc: "强化爆破。抛物线投掷，爆炸范围极大且伤害高。" },
     scout: { name: "飞行侦察兵", desc: "极速移动(1.5x)。射击在身后投下2秒延时的范围炸弹。" },
     handler: { name: "训狗师", desc: "每1.5秒自动召唤猎犬，自动追击并撕咬减速敌人。" },
     shockwave: { name: "震荡机", desc: "射击释放范围震荡波，眩晕敌人0.7秒并减速3秒。" },
-    engineer: { name: "工兵", desc: "按 E 键耗50金币造炮台(需2.5秒)，回溯后炮塔重置需再次搭建。按 Q 标记跃迁点。" },
+    engineer: { name: "工兵", desc: "按 E 键耗50金造炮塔(有生命值)。按 Q 标记下一轮回溯跃迁点。" },
     radiation: { name: "辐射兵", desc: "自带致命辐射场，持续灼烧周围敌人。" },
     flame: { name: "喷火兵", desc: "喷射锥形穿透火焰，群体杀伤。" },
     shotgun: { name: "战壕兵", desc: "霰弹枪，近战极高爆发，散射弹片。" },
     shield: { name: "盾兵", desc: "举盾时减速，弹开撞击的敌人并格挡伤害。" },
-    commissar: { name: "政委", desc: "手枪射击(10发换弹1s)。释放光环，大幅提升范围内所有时间线分身的伤害。" },
-    sniper: { name: "狙击手", desc: "长按鼠标左键锁定敌人，蓄力预瞄0.5秒后发射100%必杀狙击弹。" }
+    commissar: { name: "政委", desc: "手枪射击(10发换弹1s)。释放光环，提升范围内所有分身1.5倍伤害。" },
+    sniper: { name: "狙击手", desc: "长按锁定，0.5秒蓄力后发射无视血量100%必杀狙击弹。" }
 };
 let selectedClass = 'assault';
+
+// Enemy Types Bestiary Config
+const ENEMY_TYPES = {
+    xeno: { name: "Xeno (普通异体)", color: "#ef4444", shape: "circle", desc: "普通近战异体，缺乏心智，无视其他目标，眼中只有核心基地。" },
+    typeX: { name: "Type X (射击精英)", color: "#f97316", shape: "square", desc: "掌握了射击能力的精英异体，会停下脚步，优先攻击距离自己最近的单位或建筑。" },
+    duke: { name: "Duke (毁灭公爵)", color: "#8b5cf6", shape: "rect", desc: "体型庞大的紫色巨兽。移动缓慢但拥有极高HP。直奔基地，但会毫不留情地停下摧毁挡在路径上的炮塔和单位。" },
+    fanatis: { name: "Fanatis (狂热者)", color: "#06b6d4", shape: "triangle", desc: "蓝色诡异异体，拥有超快的移动速度。极具攻击性，会扑向最近的单位进行低伤害但极高频的撕咬。" },
+    mp: { name: "变异宪兵 (MP)", color: "#64748b", shape: "circle-dot", desc: "被感染的旧日士兵，保留了冲锋枪。身边没有敌军时会朝基地方向疯狂盲射压制；一旦有单位靠近，则会精确集火该单位。" },
+    emperor: { name: "帝皇 (Emperor)", color: "#eab308", shape: "hexagon", desc: "移动缓慢、射程极短的重型炮兵。一旦有单位进入射程，它会停顿并轰出极具毁灭性的大范围爆炸炮弹。" }
+};
 
 // Engine State
 const canvas = document.getElementById('gameCanvas');
@@ -199,16 +213,7 @@ let screenShake = 0;
 let minimapZoom = 0.05; 
 
 // Entities
-let player = null;
-let clones = [];
-let bullets = []; 
-let dogs = [];
-let shockwaves = [];
-let laserBeams = [];
-let enemies = [];
-let particles = [];
-let resources = [];
-let turrets = [];
+let player = null, clones = [], bullets = [], dogs = [], shockwaves = [], laserBeams = [], enemies = [], particles = [], resources = [], turrets = [];
 
 // Input
 const keys = { w: false, a: false, s: false, d: false, e: false, q: false };
@@ -216,22 +221,16 @@ const mouse = { x: 0, y: 0, down: false };
 const inputState = { e_pressed: false, q_pressed: false };
 
 let seed = 1;
-function random() {
-    let x = Math.sin(seed++) * 10000;
-    return x - Math.floor(x);
-}
+function random() { let x = Math.sin(seed++) * 10000; return x - Math.floor(x); }
 
 // ==========================================
-// Resize & Input Listeners
+// Initialization & Listeners
 // ==========================================
 function resize() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    fogCanvas.width = window.innerWidth;
-    fogCanvas.height = window.innerHeight;
+    canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+    fogCanvas.width = window.innerWidth; fogCanvas.height = window.innerHeight;
 }
-window.addEventListener('resize', resize);
-resize();
+window.addEventListener('resize', resize); resize();
 
 window.addEventListener('keydown', e => {
     let k = e.key.toLowerCase();
@@ -248,8 +247,7 @@ window.addEventListener('keyup', e => {
     if(k === 's' || e.key === 'ArrowDown') keys.s = false;
     if(k === 'a' || e.key === 'ArrowLeft') keys.a = false;
     if(k === 'd' || e.key === 'ArrowRight') keys.d = false;
-    if(k === 'e') keys.e = false;
-    if(k === 'q') keys.q = false;
+    if(k === 'e') keys.e = false; if(k === 'q') keys.q = false;
 });
 
 window.addEventListener('mousemove', e => { mouse.x = e.clientX; mouse.y = e.clientY; });
@@ -262,8 +260,39 @@ window.addEventListener('wheel', (e) => {
     }
 });
 
+// Bestiary Init
+function initBestiary() {
+    const container = document.getElementById('bestiary-container');
+    container.innerHTML = '';
+    Object.keys(ENEMY_TYPES).forEach(k => {
+        let type = ENEMY_TYPES[k];
+        let div = document.createElement('div');
+        div.className = 'enemy-card';
+        div.innerHTML = `
+            <div class="enemy-card-title">
+                <span style="display:inline-block; width:20px; height:20px; background-color:${type.color}; border-radius:${type.shape==='circle'?'50%':(type.shape==='triangle'?'0':'4px')}; box-shadow: 0 0 8px ${type.color}"></span>
+                <span class="text-white">${type.name}</span>
+            </div>
+            <p class="text-sm text-slate-300 mt-2">${type.desc}</p>
+        `;
+        container.appendChild(div);
+    });
+}
+initBestiary();
+
+document.getElementById('btn-open-bestiary').onclick = () => {
+    document.getElementById('screen-start').classList.add('hidden');
+    document.getElementById('screen-bestiary').classList.remove('hidden');
+    gameState = STATE.BESTIARY;
+};
+document.getElementById('btn-close-bestiary').onclick = () => {
+    document.getElementById('screen-bestiary').classList.add('hidden');
+    document.getElementById('screen-start').classList.remove('hidden');
+    gameState = STATE.START;
+};
+
 // ==========================================
-// Firebase & Multiplayer Logic
+// Multiplayer Firebase Logic (Kept Intact)
 // ==========================================
 let db, auth, userId, roomId = null, roomRef = null, myRole = null;
 let unsubscribeRoom = null;
@@ -272,84 +301,47 @@ async function initFirebase() {
     try {
         const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
         if (!firebaseConfig) throw new Error("No Firebase Config");
-        const app = initializeApp(firebaseConfig);
-        auth = getAuth(app);
-        db = getFirestore(app);
-        
-        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-            await signInWithCustomToken(auth, __initial_auth_token);
-        } else {
-            await signInAnonymously(auth);
-        }
-        userId = auth.currentUser.uid;
-        return true;
-    } catch (e) {
-        console.error("Firebase init failed:", e);
-        return false;
-    }
+        const app = initializeApp(firebaseConfig); auth = getAuth(app); db = getFirestore(app);
+        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) await signInWithCustomToken(auth, __initial_auth_token);
+        else await signInAnonymously(auth);
+        userId = auth.currentUser.uid; return true;
+    } catch (e) { console.error("Firebase init failed:", e); return false; }
 }
 
 async function startMatchmaking() {
-    document.getElementById('screen-start').classList.add('hidden');
-    document.getElementById('screen-matchmaking').classList.remove('hidden');
-    
+    document.getElementById('screen-start').classList.add('hidden'); document.getElementById('screen-matchmaking').classList.remove('hidden');
     if (!auth) await initFirebase();
-    if (!auth || !userId) {
-        alert("网络连接失败，请返回使用单机模式。");
-        location.reload();
-        return;
-    }
+    if (!auth || !userId) { alert("网络连接失败，请返回使用单机模式。"); location.reload(); return; }
 
     const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
     const roomsCol = collection(db, 'artifacts', appId, 'public', 'data', 'pvp_rooms');
+    const snap = await getDocs(roomsCol); let joined = false;
     
-    const snap = await getDocs(roomsCol);
-    let joined = false;
-    
-    snap.forEach(d => {
-        let data = d.data();
-        if (!joined && !data.p2 && data.p1 !== userId) {
-            roomId = d.id;
-            joined = true;
-        }
-    });
+    snap.forEach(d => { let data = d.data(); if (!joined && !data.p2 && data.p1 !== userId) { roomId = d.id; joined = true; } });
 
     if (joined) {
-        myRole = 'p2';
-        roomRef = doc(roomsCol, roomId);
-        await updateDoc(roomRef, { p2: userId });
+        myRole = 'p2'; roomRef = doc(roomsCol, roomId); await updateDoc(roomRef, { p2: userId });
         document.getElementById('match-status').innerText = "已找到对手！同步时空中...";
     } else {
-        myRole = 'p1';
-        roomId = `room_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
-        roomRef = doc(roomsCol, roomId);
+        myRole = 'p1'; roomId = `room_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`; roomRef = doc(roomsCol, roomId);
         await setDoc(roomRef, { p1: userId, p2: null, wave: 1, p1Data: null, p2Data: null });
         document.getElementById('match-status').innerText = "已创建时空枢纽，等待对手加入...";
     }
 
     unsubscribeRoom = onSnapshot(roomRef, (docSnap) => {
-        if (!docSnap.exists()) return;
-        let data = docSnap.data();
-        
+        if (!docSnap.exists()) return; let data = docSnap.data();
         if (gameState === STATE.MATCHMAKING && data.p1 && data.p2) {
             document.getElementById('screen-matchmaking').classList.add('hidden');
-            if (myRole === 'p1') { gameData.baseX = 0; gameData.baseY = 0; }
-            else { gameData.baseX = 3000; gameData.baseY = 3000; }
+            if (myRole === 'p1') { gameData.baseX = 0; gameData.baseY = 0; } else { gameData.baseX = 3000; gameData.baseY = 3000; }
             openShop();
         }
-
         if (gameState === STATE.SYNCING && data.p1Data && data.p2Data) {
             try {
-                let p1Loop = JSON.parse(data.p1Data);
-                let p2Loop = JSON.parse(data.p2Data);
-                gameData.pastLoops.push(decompressLoop(p1Loop));
-                gameData.pastLoops.push(decompressLoop(p2Loop));
-                
+                let p1Loop = JSON.parse(data.p1Data), p2Loop = JSON.parse(data.p2Data);
+                gameData.pastLoops.push(decompressLoop(p1Loop)); gameData.pastLoops.push(decompressLoop(p2Loop));
                 gameData.wave++;
                 if (myRole === 'p1') updateDoc(roomRef, { p1Data: null, p2Data: null, wave: gameData.wave });
-                
-                document.getElementById('screen-syncing').classList.add('hidden');
-                openShop();
+                document.getElementById('screen-syncing').classList.add('hidden'); openShop();
             } catch(e) { console.error("Sync Parse Error", e); }
         }
     });
@@ -362,8 +354,7 @@ function compressLoop(loopObj) {
         if (t) {
             let bs = loopObj.trajectory[i].buildStarted || (loopObj.trajectory[i+1] && loopObj.trajectory[i+1].buildStarted) || (loopObj.trajectory[i+2] && loopObj.trajectory[i+2].buildStarted);
             cTraj.push([Math.round(t.x), Math.round(t.y), Math.round(t.angle*100)/100, t.firing?1:0, Math.round(t.tX), Math.round(t.tY), bs?1:0]);
-        }
-        else cTraj.push(null);
+        } else cTraj.push(null);
     }
     return { classType: loopObj.classType, traj: cTraj };
 }
@@ -382,15 +373,13 @@ function decompressLoop(cLoop) {
     return { classType: cLoop.classType, trajectory: traj };
 }
 
-
 // ==========================================
 // Class Definitions & Entities
 // ==========================================
 function dist(x1, y1, x2, y2) { return Math.sqrt((x1-x2)**2 + (y1-y2)**2); }
 function createParticles(x, y, color, count, speed=1, life=1) {
     for(let i=0; i<count; i++) {
-        let a = Math.random() * Math.PI * 2;
-        let s = (Math.random() * 3 + 1) * speed;
+        let a = Math.random() * Math.PI * 2; let s = (Math.random() * 3 + 1) * speed;
         particles.push({ x, y, color, vx: Math.cos(a)*s, vy: Math.sin(a)*s, life, decay: Math.random()*0.05+0.02 });
     }
 }
@@ -399,32 +388,20 @@ class PlayerUnit {
     constructor(x, y, classType, isClone = false) {
         this.x = x; this.y = y; this.classType = classType; this.isClone = isClone;
         this.active = true; this.angle = 0; this.cooldown = 0; this.fireTimer = 0;
-        this.myDogs = 0;
-        this.buildTimer = 0;
-        this.ammo = 10;
-        this.reloadTimer = 0;
-        this.aimTimer = 0;
-        this.aimTarget = null;
-        this.buffed = false;
+        this.myDogs = 0; this.buildTimer = 0; this.ammo = 10; this.reloadTimer = 0;
+        this.aimTimer = 0; this.aimTarget = null; this.buffed = false;
+        this.hp = 100; // Players/Clones now have HP conceptually but we use it for targetability. If HP<=0 active=false.
     }
 
     update(state) {
         if (!this.active) return;
-        
-        this.x = state.x; this.y = state.y; this.angle = state.angle;
-        this.isFiring = state.firing; 
-        
+        this.x = state.x; this.y = state.y; this.angle = state.angle; this.isFiring = state.firing; 
         if (this.cooldown > 0) this.cooldown--;
 
         // Commissar Buff Check
         this.buffed = false;
         let allUnits = [player, ...clones].filter(u => u && u.active);
-        for(let u of allUnits) {
-            if (u.classType === 'commissar' && dist(this.x, this.y, u.x, u.y) < 250) {
-                this.buffed = true;
-                break;
-            }
-        }
+        for(let u of allUnits) { if (u.classType === 'commissar' && dist(this.x, this.y, u.x, u.y) < 250) { this.buffed = true; break; } }
         let dmgMult = this.buffed ? 1.5 : 1;
 
         // Combat logic
@@ -437,117 +414,81 @@ class PlayerUnit {
         } 
         else if (this.classType === 'grenadier') {
             if (state.firing && this.cooldown === 0) {
-                bullets.push(new Grenade(this.x, this.y, state.tX, state.tY, this.isClone, this.buffed));
-                this.cooldown = 75;
+                bullets.push(new Grenade(this.x, this.y, state.tX, state.tY, this.isClone, this.buffed)); this.cooldown = 75;
             }
         }
         else if (this.classType === 'scout') {
             if (state.firing && this.cooldown === 0) {
-                bullets.push(new TimeBomb(this.x, this.y, this.isClone, this.buffed));
-                this.cooldown = 40;
+                bullets.push(new TimeBomb(this.x, this.y, this.isClone, this.buffed)); this.cooldown = 40;
             }
         }
         else if (this.classType === 'handler') {
             if (gameData.tick % 90 === 0 && this.myDogs < 3) {
-                dogs.push(new Dog(this.x, this.y, this.isClone, this));
-                this.myDogs++;
+                dogs.push(new Dog(this.x, this.y, this.isClone, this)); this.myDogs++;
             }
         }
         else if (this.classType === 'shockwave') {
             if (state.firing && this.cooldown === 0) {
-                shockwaves.push({x: this.x, y: this.y, radius: 10, maxRadius: 250, life: 30, maxLife: 30, dmg: 20 * dmgMult});
-                this.cooldown = 150; 
+                shockwaves.push({x: this.x, y: this.y, radius: 10, maxRadius: 250, life: 30, maxLife: 30, dmg: 20 * dmgMult}); this.cooldown = 150; 
             }
         }
         else if (this.classType === 'radiation') {
             if (gameData.tick % 10 === 0) {
                 createParticles(this.x, this.y, '#22c55e', 1);
                 enemies.forEach(e => {
-                    if(e.active && dist(this.x, this.y, e.x, e.y) < 100) {
-                        e.hp -= 5 * dmgMult;
-                        createParticles(e.x, e.y, '#22c55e', 1);
-                    }
+                    if(e.active && dist(this.x, this.y, e.x, e.y) < 100) { e.hp -= 5 * dmgMult; createParticles(e.x, e.y, '#22c55e', 1); }
                 });
             }
         }
         else if (this.classType === 'flame') {
             if (state.firing && this.cooldown === 0) {
-                bullets.push(new Bullet(this.x, this.y, this.angle + (Math.random()-0.5)*0.2, this.isClone, 8 * dmgMult, 8, 'flame', this.buffed));
-                this.cooldown = 3;
+                bullets.push(new Bullet(this.x, this.y, this.angle + (Math.random()-0.5)*0.2, this.isClone, 8 * dmgMult, 8, 'flame', this.buffed)); this.cooldown = 3;
             }
         }
         else if (this.classType === 'shotgun') {
             if (state.firing && this.cooldown === 0) {
                 let spreads = [-0.3, -0.15, 0, 0.15, 0.3];
-                spreads.forEach(sp => {
-                    bullets.push(new Bullet(this.x, this.y, this.angle + sp, this.isClone, 40 * dmgMult, 15, 'shotgun', this.buffed));
-                });
+                spreads.forEach(sp => { bullets.push(new Bullet(this.x, this.y, this.angle + sp, this.isClone, 40 * dmgMult, 15, 'shotgun', this.buffed)); });
                 this.cooldown = 45;
             }
         }
         else if (this.classType === 'engineer') {
-            if (state.buildStarted) {
-                this.buildTimer = 150; // 2.5s
-            }
+            if (state.buildStarted) this.buildTimer = 150;
             if (this.buildTimer > 0) {
                 this.buildTimer--;
-                if (this.buildTimer % 5 === 0) {
-                    createParticles(this.x + (Math.random()-0.5)*20, this.y + (Math.random()-0.5)*20, '#eab308', 1, 0.5, 0.5);
-                }
-                if (this.buildTimer === 0) {
-                    turrets.push(new Turret(this.x, this.y));
-                }
+                if (this.buildTimer % 5 === 0) createParticles(this.x + (Math.random()-0.5)*20, this.y + (Math.random()-0.5)*20, '#eab308', 1, 0.5, 0.5);
+                if (this.buildTimer === 0) turrets.push(new Turret(this.x, this.y));
             }
         }
         else if (this.classType === 'commissar') {
-            if (this.reloadTimer > 0) {
-                this.reloadTimer--;
-            } else if (state.firing && this.cooldown === 0) {
+            if (this.reloadTimer > 0) this.reloadTimer--;
+            else if (state.firing && this.cooldown === 0) {
                 bullets.push(new Bullet(this.x, this.y, this.angle + (Math.random()-0.5)*0.05, this.isClone, 35 * dmgMult, 20, 'pistol', this.buffed));
-                this.ammo--;
-                this.cooldown = 12;
-                if (this.ammo <= 0) {
-                    this.reloadTimer = 60;
-                    this.ammo = 10;
-                }
+                this.ammo--; this.cooldown = 12;
+                if (this.ammo <= 0) { this.reloadTimer = 60; this.ammo = 10; }
             }
         }
         else if (this.classType === 'sniper') {
             if (state.firing && this.cooldown === 0) {
                 if (!this.aimTarget || !this.aimTarget.active || dist(state.tX, state.tY, this.aimTarget.x, this.aimTarget.y) > 150) {
-                    this.aimTarget = null;
-                    this.aimTimer = 0;
-                    let minDist = 150;
-                    enemies.forEach(e => {
-                        if (e.active) {
-                            let d = dist(state.tX, state.tY, e.x, e.y);
-                            if (d < minDist) { minDist = d; this.aimTarget = e; }
-                        }
-                    });
+                    this.aimTarget = null; this.aimTimer = 0; let minDist = 150;
+                    enemies.forEach(e => { if (e.active) { let d = dist(state.tX, state.tY, e.x, e.y); if (d < minDist) { minDist = d; this.aimTarget = e; } } });
                 }
-
                 if (this.aimTarget) {
                     this.aimTimer++;
                     if (this.aimTimer >= 30) {
                         laserBeams.push({ x1: this.x, y1: this.y, x2: this.aimTarget.x, y2: this.aimTarget.y, life: 15 });
-                        this.aimTarget.hp = -9999; 
-                        createParticles(this.aimTarget.x, this.aimTarget.y, '#ef4444', 30, 3);
-                        this.aimTimer = 0;
-                        this.cooldown = 120;
+                        this.aimTarget.hp = -9999; createParticles(this.aimTarget.x, this.aimTarget.y, '#ef4444', 30, 3);
+                        this.aimTimer = 0; this.cooldown = 120;
                     }
                 }
-            } else {
-                this.aimTarget = null;
-                this.aimTimer = 0;
-            }
+            } else { this.aimTarget = null; this.aimTimer = 0; }
         }
 
-        // Gather Resources
+        // Resources
         for(let i = resources.length - 1; i >= 0; i--) {
             if(dist(this.x, this.y, resources[i].x, resources[i].y) < CONFIG.PLAYER_RADIUS + 25) {
-                gameData.coins += resources[i].amount;
-                createParticles(resources[i].x, resources[i].y, '#facc15', 10);
-                resources.splice(i, 1);
+                gameData.coins += resources[i].amount; createParticles(resources[i].x, resources[i].y, '#facc15', 10); resources.splice(i, 1);
             }
         }
     }
@@ -571,8 +512,7 @@ class PlayerUnit {
         else if (this.classType === 'engineer') { 
             ctx.fillStyle='#eab308'; ctx.fillRect(0,-10,4,20); ctx.fillRect(0,-4,12,8); 
             if (this.buildTimer > 0) {
-                ctx.save(); ctx.rotate(-this.angle); 
-                ctx.strokeStyle = '#eab308'; ctx.lineWidth = 3;
+                ctx.save(); ctx.rotate(-this.angle); ctx.strokeStyle = '#eab308'; ctx.lineWidth = 3;
                 ctx.beginPath(); ctx.arc(0, 0, 25, -Math.PI/2, -Math.PI/2 + ((150 - this.buildTimer) / 150) * Math.PI * 2); ctx.stroke();
                 ctx.restore();
             }
@@ -581,39 +521,26 @@ class PlayerUnit {
         else if (this.classType === 'flame') { ctx.fillStyle = '#f97316'; ctx.fillRect(5, -4, 20, 8); }
         else if (this.classType === 'radiation') {
             ctx.fillStyle = '#22c55e'; ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI*2); ctx.fill();
-            ctx.beginPath(); ctx.arc(0, 0, 100, 0, Math.PI*2);
-            ctx.fillStyle = 'rgba(34, 197, 94, 0.05)'; ctx.fill();
-            ctx.strokeStyle = 'rgba(34, 197, 94, 0.2)'; ctx.stroke();
+            ctx.beginPath(); ctx.arc(0, 0, 100, 0, Math.PI*2); ctx.fillStyle = 'rgba(34, 197, 94, 0.05)'; ctx.fill(); ctx.strokeStyle = 'rgba(34, 197, 94, 0.2)'; ctx.stroke();
         }
         else if (this.classType === 'shield') {
-            if (this.isFiring) {
-                ctx.beginPath(); ctx.arc(0, 0, 25, -Math.PI/3, Math.PI/3);
-                ctx.lineWidth = 6; ctx.strokeStyle = '#60a5fa'; ctx.stroke();
-            } else ctx.fillRect(8, -10, 4, 20);
+            if (this.isFiring) { ctx.beginPath(); ctx.arc(0, 0, 25, -Math.PI/3, Math.PI/3); ctx.lineWidth = 6; ctx.strokeStyle = '#60a5fa'; ctx.stroke(); } 
+            else ctx.fillRect(8, -10, 4, 20);
         }
         else if (this.classType === 'commissar') {
-            ctx.beginPath(); ctx.arc(0, 0, 250, 0, Math.PI*2);
-            ctx.fillStyle = 'rgba(239, 68, 68, 0.05)'; ctx.fill();
-            ctx.strokeStyle = 'rgba(239, 68, 68, 0.2)'; ctx.stroke();
+            ctx.beginPath(); ctx.arc(0, 0, 250, 0, Math.PI*2); ctx.fillStyle = 'rgba(239, 68, 68, 0.05)'; ctx.fill(); ctx.strokeStyle = 'rgba(239, 68, 68, 0.2)'; ctx.stroke();
             ctx.fillStyle = '#fff'; ctx.fillRect(5, -2, 10, 4);
-            if (this.reloadTimer > 0) {
-                ctx.fillStyle = '#eab308'; ctx.beginPath(); ctx.arc(0, -15, 4, 0, Math.PI*2); ctx.fill();
-            }
+            if (this.reloadTimer > 0) { ctx.fillStyle = '#eab308'; ctx.beginPath(); ctx.arc(0, -15, 4, 0, Math.PI*2); ctx.fill(); }
         }
         else if (this.classType === 'sniper') {
             ctx.fillStyle = '#fff'; ctx.fillRect(5, -2, 25, 4);
             if (this.aimTarget && this.aimTimer > 0) {
-                ctx.save(); ctx.rotate(-this.angle);
-                let tAngle = Math.atan2(this.aimTarget.y - this.y, this.aimTarget.x - this.x);
-                ctx.rotate(tAngle);
+                ctx.save(); ctx.rotate(-this.angle); let tAngle = Math.atan2(this.aimTarget.y - this.y, this.aimTarget.x - this.x); ctx.rotate(tAngle);
                 let d = dist(this.x, this.y, this.aimTarget.x, this.aimTarget.y);
-                ctx.strokeStyle = `rgba(239, 68, 68, ${this.aimTimer / 30})`;
-                ctx.lineWidth = 1 + (this.aimTimer / 30) * 3;
-                ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(d, 0); ctx.stroke();
-                ctx.restore();
+                ctx.strokeStyle = `rgba(239, 68, 68, ${this.aimTimer / 30})`; ctx.lineWidth = 1 + (this.aimTimer / 30) * 3;
+                ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(d, 0); ctx.stroke(); ctx.restore();
             }
         }
-        
         ctx.restore();
     }
 }
@@ -624,19 +551,18 @@ class Bullet {
         this.isClone = isClone; this.dmg = dmg; this.type = type; this.active = true; this.isBuffed = isBuffed;
         this.life = type === 'flame' ? 15 : (type === 'shotgun' ? 25 : 100);
     }
-    update() {
-        this.x += this.vx; this.y += this.vy; this.life--;
-        if(this.life <= 0) this.active = false;
-    }
+    update() { this.x += this.vx; this.y += this.vy; this.life--; if(this.life <= 0) this.active = false; }
     draw(ctx) {
         ctx.save(); ctx.translate(this.x, this.y); ctx.rotate(Math.atan2(this.vy, this.vx));
         if (this.type === 'flame') {
-            ctx.fillStyle = `rgba(249, 115, 22, ${this.life/15})`;
-            ctx.beginPath(); ctx.arc(0, 0, 10 - (this.life/15)*5, 0, Math.PI*2); ctx.fill();
+            ctx.fillStyle = `rgba(249, 115, 22, ${this.life/15})`; ctx.beginPath(); ctx.arc(0, 0, 10 - (this.life/15)*5, 0, Math.PI*2); ctx.fill();
+        } else if (this.type === 'enemy' || this.type === 'enemy_burst' || this.type === 'enemy_artillery') {
+            ctx.fillStyle = this.type === 'enemy_artillery' ? '#eab308' : '#f43f5e';
+            let size = this.type === 'enemy_artillery' ? 8 : 4;
+            ctx.shadowBlur = 8; ctx.shadowColor = ctx.fillStyle; ctx.beginPath(); ctx.arc(0, 0, size, 0, Math.PI*2); ctx.fill();
         } else {
             ctx.fillStyle = this.isBuffed ? '#f43f5e' : (this.isClone ? '#60a5fa' : '#fde047'); 
-            ctx.shadowBlur = 8; ctx.shadowColor = ctx.fillStyle;
-            ctx.fillRect(-6, -2, 12, 4);
+            ctx.shadowBlur = 8; ctx.shadowColor = ctx.fillStyle; ctx.fillRect(-6, -2, 12, 4);
         }
         ctx.restore();
     }
@@ -645,161 +571,222 @@ class Bullet {
 class Grenade {
     constructor(x, y, tX, tY, isClone, isBuffed=false) {
         this.x = x; this.y = y; this.isClone = isClone; this.active = true; this.isBuffed = isBuffed;
-        let dx = tX - x, dy = tY - y; let d = Math.sqrt(dx*dx + dy*dy);
-        let speed = 10; this.life = d / speed; this.maxLife = this.life;
-        this.vx = (dx/d)*speed; this.vy = (dy/d)*speed;
+        let dx = tX - x, dy = tY - y; let d = Math.sqrt(dx*dx + dy*dy); let speed = 10; 
+        this.life = d / speed; this.maxLife = this.life; this.vx = (dx/d)*speed; this.vy = (dy/d)*speed;
     }
     update() {
         this.x += this.vx; this.y += this.vy; this.life--;
         if(this.life <= 0) {
-            this.active = false;
-            createParticles(this.x, this.y, '#ea580c', 40, 2, 1.5); 
-            ctx.fillStyle = 'rgba(234, 88, 12, 0.2)'; ctx.fillRect(0,0,canvas.width,canvas.height);
-            screenShake = 15;
-            enemies.forEach(e => {
-                if(e.active && dist(this.x, this.y, e.x, e.y) < 180) e.hp -= 150 * (this.isBuffed ? 1.5 : 1); 
-            });
+            this.active = false; createParticles(this.x, this.y, '#ea580c', 40, 2, 1.5); 
+            ctx.fillStyle = 'rgba(234, 88, 12, 0.2)'; ctx.fillRect(0,0,canvas.width,canvas.height); screenShake = 15;
+            enemies.forEach(e => { if(e.active && dist(this.x, this.y, e.x, e.y) < 180) e.hp -= 150 * (this.isBuffed ? 1.5 : 1); });
         }
     }
-    draw(ctx) {
-        let s = 1 + Math.sin((this.life/this.maxLife)*Math.PI)*0.8;
-        ctx.fillStyle = '#ea580c'; ctx.beginPath(); ctx.arc(this.x, this.y, 6*s, 0, Math.PI*2); ctx.fill();
-    }
+    draw(ctx) { let s = 1 + Math.sin((this.life/this.maxLife)*Math.PI)*0.8; ctx.fillStyle = '#ea580c'; ctx.beginPath(); ctx.arc(this.x, this.y, 6*s, 0, Math.PI*2); ctx.fill(); }
 }
 
 class TimeBomb {
-    constructor(x, y, isClone, isBuffed=false) {
-        this.x = x; this.y = y; this.isClone = isClone; this.active = true; this.life = 120; this.isBuffed = isBuffed;
-    }
+    constructor(x, y, isClone, isBuffed=false) { this.x = x; this.y = y; this.isClone = isClone; this.active = true; this.life = 120; this.isBuffed = isBuffed; }
     update() {
         this.life--;
         if(this.life <= 0) {
-            this.active = false;
-            createParticles(this.x, this.y, '#ef4444', 30, 2);
+            this.active = false; createParticles(this.x, this.y, '#ef4444', 30, 2);
             enemies.forEach(e => { if(e.active && dist(this.x, this.y, e.x, e.y) < 100) e.hp -= 80 * (this.isBuffed ? 1.5 : 1); });
         }
     }
-    draw(ctx) {
-        ctx.fillStyle = (this.life%10 < 5) ? '#ef4444' : '#333';
-        ctx.beginPath(); ctx.arc(this.x, this.y, 8, 0, Math.PI*2); ctx.fill();
-    }
+    draw(ctx) { ctx.fillStyle = (this.life%10 < 5) ? '#ef4444' : '#333'; ctx.beginPath(); ctx.arc(this.x, this.y, 8, 0, Math.PI*2); ctx.fill(); }
 }
 
 class Dog {
-    constructor(x, y, isClone, owner) {
-        this.x = x; this.y = y; this.isClone = isClone; this.owner = owner;
-        this.active = true; this.speed = 3.5; this.life = 600; 
-    }
+    constructor(x, y, isClone, owner) { this.x = x; this.y = y; this.isClone = isClone; this.owner = owner; this.active = true; this.speed = 3.5; this.life = 600; }
     update() {
-        this.life--;
-        if(this.life <= 0) { this.active = false; this.owner.myDogs--; return; }
-        
+        this.life--; if(this.life <= 0) { this.active = false; this.owner.myDogs--; return; }
         let closest = null, minDist = Infinity;
-        enemies.forEach(e => {
-            let d = dist(this.x, this.y, e.x, e.y);
-            if(e.active && d < minDist) { minDist = d; closest = e; }
-        });
-
+        enemies.forEach(e => { let d = dist(this.x, this.y, e.x, e.y); if(e.active && d < minDist) { minDist = d; closest = e; } });
         if (closest) {
-            let a = Math.atan2(closest.y - this.y, closest.x - this.x);
-            this.x += Math.cos(a)*this.speed; this.y += Math.sin(a)*this.speed;
-            if (minDist < 20) {
-                closest.hp -= 2; 
-                closest.slowTime = 60; 
-                createParticles(this.x, this.y, '#ef4444', 1, 0.5);
-            }
+            let a = Math.atan2(closest.y - this.y, closest.x - this.x); this.x += Math.cos(a)*this.speed; this.y += Math.sin(a)*this.speed;
+            if (minDist < 20) { closest.hp -= 2; closest.slowTime = 60; createParticles(this.x, this.y, '#ef4444', 1, 0.5); }
         }
     }
-    draw(ctx) {
-        ctx.fillStyle = '#8b5cf6'; ctx.shadowBlur = 5; ctx.shadowColor = '#8b5cf6';
-        ctx.beginPath(); ctx.arc(this.x, this.y, 6, 0, Math.PI*2); ctx.fill();
-    }
+    draw(ctx) { ctx.fillStyle = '#8b5cf6'; ctx.shadowBlur = 5; ctx.shadowColor = '#8b5cf6'; ctx.beginPath(); ctx.arc(this.x, this.y, 6, 0, Math.PI*2); ctx.fill(); }
 }
 
 class Turret {
-    constructor(x, y) { this.x = x; this.y = y; this.fireTimer = 0; }
+    constructor(x, y) { this.x = x; this.y = y; this.fireTimer = 0; this.hp = 300; this.maxHp = 300; this.active = true; }
     update() {
+        if (this.hp <= 0) { this.active = false; createParticles(this.x, this.y, '#64748b', 20); return; }
         this.fireTimer++;
         if (this.fireTimer % 45 === 0) {
             let closest = null, minDist = 400;
-            enemies.forEach(e => {
-                let d = dist(this.x, this.y, e.x, e.y);
-                if(e.active && d < minDist) { minDist = d; closest = e; }
-            });
-            if (closest) {
-                let a = Math.atan2(closest.y - this.y, closest.x - this.x);
-                bullets.push(new Bullet(this.x, this.y, a, false, 20, 12, 'turret'));
-            }
+            enemies.forEach(e => { let d = dist(this.x, this.y, e.x, e.y); if(e.active && d < minDist) { minDist = d; closest = e; } });
+            if (closest) { let a = Math.atan2(closest.y - this.y, closest.x - this.x); bullets.push(new Bullet(this.x, this.y, a, false, 20, 12, 'turret')); }
         }
     }
     draw(ctx) {
         ctx.fillStyle = '#64748b'; ctx.fillRect(this.x-10, this.y-10, 20, 20);
         ctx.fillStyle = '#eab308'; ctx.beginPath(); ctx.arc(this.x, this.y, 6, 0, Math.PI*2); ctx.fill();
+        if(this.hp < this.maxHp) { ctx.fillStyle = '#ef4444'; ctx.fillRect(this.x-10, this.y-15, 20, 4); ctx.fillStyle = '#22c55e'; ctx.fillRect(this.x-10, this.y-15, 20*(this.hp/this.maxHp), 4); }
     }
 }
 
+// 敌方类重构 - 支持多品种 AI
 class Enemy {
-    constructor(wave, targetBaseX, targetBaseY, spawnX = null, spawnY = null) {
-        if (spawnX !== null && spawnY !== null) {
-            this.x = spawnX; this.y = spawnY;
-        } else {
-            let a = random() * Math.PI * 2;
-            let d = 1000 + random() * 500;
-            this.x = targetBaseX + Math.cos(a)*d;
-            this.y = targetBaseY + Math.sin(a)*d;
-        }
+    constructor(wave, targetBaseX, targetBaseY, spawnX = null, spawnY = null, type = 'xeno') {
+        if (spawnX !== null && spawnY !== null) { this.x = spawnX; this.y = spawnY; } 
+        else { let a = random() * Math.PI * 2; let d = 1000 + random() * 500; this.x = targetBaseX + Math.cos(a)*d; this.y = targetBaseY + Math.sin(a)*d; }
         
-        this.radius = 16; this.speed = 1.0 + wave*0.1; this.hp = 40 + wave*20; 
-        this.maxHp = this.hp; this.active = true;
-        this.stunTime = 0; this.slowTime = 0;
-    }
-    update() {
-        if (this.hp <= 0) {
-            this.active = false;
-            createParticles(this.x, this.y, '#ef4444', 15);
-            return;
-        }
+        this.type = type;
+        this.active = true; this.stunTime = 0; this.slowTime = 0;
+        
+        // Default base target
+        this.baseX = targetBaseX; this.baseY = targetBaseY;
 
+        // Stats Assignment
+        if(type === 'xeno') { this.radius = 16; this.speed = 1.2 + wave*0.1; this.hp = 40 + wave*20; this.color = ENEMY_TYPES.xeno.color; this.shape = ENEMY_TYPES.xeno.shape; }
+        else if(type === 'typeX') { this.radius = 14; this.speed = 0.9 + wave*0.05; this.hp = 30 + wave*15; this.color = ENEMY_TYPES.typeX.color; this.shape = ENEMY_TYPES.typeX.shape; this.fireTimer = 0; }
+        else if(type === 'duke') { this.radius = 26; this.speed = 0.4 + wave*0.02; this.hp = 200 + wave*80; this.color = ENEMY_TYPES.duke.color; this.shape = ENEMY_TYPES.duke.shape; this.crushTimer = 0; }
+        else if(type === 'fanatis') { this.radius = 12; this.speed = 2.2 + wave*0.15; this.hp = 20 + wave*10; this.color = ENEMY_TYPES.fanatis.color; this.shape = ENEMY_TYPES.fanatis.shape; }
+        else if(type === 'mp') { this.radius = 15; this.speed = 0.8 + wave*0.05; this.hp = 50 + wave*20; this.color = ENEMY_TYPES.mp.color; this.shape = ENEMY_TYPES.mp.shape; this.burstTimer = 0; this.burstShots = 0; this.burstCd = 0; }
+        else if(type === 'emperor') { this.radius = 22; this.speed = 0.3 + wave*0.02; this.hp = 150 + wave*50; this.color = ENEMY_TYPES.emperor.color; this.shape = ENEMY_TYPES.emperor.shape; this.fireTimer = 0; }
+        
+        this.maxHp = this.hp;
+    }
+
+    findNearestUnit() {
+        let nearest = null; let minDist = Infinity;
+        let units = [];
+        if (player && player.active) units.push(player);
+        clones.forEach(c => { if(c.active) units.push(c); });
+        turrets.forEach(t => { if(t.active) units.push(t); });
+        
+        units.forEach(u => { let d = dist(this.x, this.y, u.x, u.y); if(d < minDist) { minDist = d; nearest = u; } });
+        return { unit: nearest, dist: minDist };
+    }
+
+    update() {
+        if (this.hp <= 0) { this.active = false; createParticles(this.x, this.y, this.color, 15); return; }
         if (this.stunTime > 0) { this.stunTime--; return; }
 
         let s = this.speed;
         if (this.slowTime > 0) { this.slowTime--; s *= 0.4; }
 
-        let tx = gameData.baseX, ty = gameData.baseY;
-        if (isMultiplayer) {
-             let d1 = dist(this.x, this.y, 0, 0);
-             let d2 = dist(this.x, this.y, 3000, 3000);
-             if (d2 < d1) { tx = 3000; ty = 3000; }
-        }
+        // AI Logic Branching
+        let targetX = this.baseX, targetY = this.baseY;
+        let nearestInfo = this.findNearestUnit();
+        let nUnit = nearestInfo.unit;
+        let nDist = nearestInfo.dist;
 
-        let dx = tx - this.x, dy = ty - this.y;
-        let distToBase = Math.sqrt(dx*dx + dy*dy);
-        
-        if (distToBase > 0) { this.x += (dx/distToBase)*s; this.y += (dy/distToBase)*s; }
+        let dx = 0, dy = 0, d = 1;
 
-        if (distToBase < CONFIG.BASE_RADIUS + this.radius) {
-            this.active = false;
-            createParticles(this.x, this.y, '#ef4444', 20);
-            if ((tx === gameData.baseX && ty === gameData.baseY) || !isMultiplayer) {
-                gameData.baseHp -= this.maxHp * 0.5;
-                screenShake = 10;
-                if(gameData.baseHp <= 0) gameState = STATE.GAMEOVER;
+        if (this.type === 'xeno') {
+            // Just move to base
+            dx = this.baseX - this.x; dy = this.baseY - this.y; d = Math.sqrt(dx*dx + dy*dy);
+            if (d > 0) { this.x += (dx/d)*s; this.y += (dy/d)*s; }
+        } 
+        else if (this.type === 'typeX') {
+            if (nUnit) { targetX = nUnit.x; targetY = nUnit.y; }
+            dx = targetX - this.x; dy = targetY - this.y; d = Math.sqrt(dx*dx + dy*dy);
+            
+            if (d > 250) { this.x += (dx/d)*s; this.y += (dy/d)*s; } // Move closer
+            
+            // Attack
+            if (this.fireTimer > 0) this.fireTimer--;
+            if (d <= 300 && this.fireTimer <= 0) {
+                bullets.push(new Bullet(this.x, this.y, Math.atan2(dy, dx), false, 10, 8, 'enemy'));
+                this.fireTimer = 90; // 1.5s
             }
         }
-    }
-    draw(ctx) {
-        ctx.fillStyle = (this.stunTime > 0) ? '#eab308' : ((this.slowTime > 0) ? '#60a5fa' : '#ef4444');
-        ctx.shadowBlur = 5; ctx.shadowColor = ctx.fillStyle;
-        ctx.beginPath(); ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2); ctx.fill();
-        if(this.hp < this.maxHp) {
-            ctx.fillStyle = '#333'; ctx.fillRect(this.x-15, this.y-this.radius-10, 30, 4);
-            ctx.fillStyle = '#22c55e'; ctx.fillRect(this.x-15, this.y-this.radius-10, 30*(this.hp/this.maxHp), 4);
+        else if (this.type === 'duke') {
+            // Move to base, but stop to crush if hitting unit
+            if (this.crushTimer > 0) { this.crushTimer--; return; } // Stopping to crush
+            
+            dx = this.baseX - this.x; dy = this.baseY - this.y; d = Math.sqrt(dx*dx + dy*dy);
+            
+            if (nUnit && nDist < this.radius + 20) {
+                // Crush
+                this.crushTimer = 60; // Stop for 1s
+                createParticles(this.x, this.y, '#8b5cf6', 10);
+                if (nUnit instanceof Turret) nUnit.hp -= 100;
+                else nUnit.hp -= 40; // Player/Clone
+            } else if (d > 0) {
+                this.x += (dx/d)*s; this.y += (dy/d)*s;
+            }
         }
+        else if (this.type === 'fanatis') {
+            if (nUnit) { targetX = nUnit.x; targetY = nUnit.y; }
+            dx = targetX - this.x; dy = targetY - this.y; d = Math.sqrt(dx*dx + dy*dy);
+            if (d > 0) { this.x += (dx/d)*s; this.y += (dy/d)*s; }
+            
+            if (nUnit && nDist < this.radius + 15) { nUnit.hp -= 0.5; } // Constant low tick damage
+        }
+        else if (this.type === 'mp') {
+            // Check radius for friendly units
+            let hasTarget = (nUnit && nDist < 400);
+            if (hasTarget) { targetX = nUnit.x; targetY = nUnit.y; }
+            
+            dx = targetX - this.x; dy = targetY - this.y; d = Math.sqrt(dx*dx + dy*dy);
+            if (d > 200) { this.x += (dx/d)*s; this.y += (dy/d)*s; } // Move slowly towards target/base
+
+            // Burst logic
+            if (this.burstCd > 0) this.burstCd--;
+            if (this.burstCd <= 0 && this.burstShots <= 0) { this.burstShots = 4; this.burstCd = 120; }
+            
+            if (this.burstShots > 0) {
+                if (this.burstTimer <= 0) {
+                    let spread = hasTarget ? (random()-0.5)*0.1 : (random()-0.5)*0.5; // Wild spread if no target
+                    bullets.push(new Bullet(this.x, this.y, Math.atan2(dy, dx) + spread, false, 5, 10, 'enemy_burst'));
+                    this.burstShots--; this.burstTimer = 8;
+                } else this.burstTimer--;
+            }
+        }
+        else if (this.type === 'emperor') {
+            if (nUnit) { targetX = nUnit.x; targetY = nUnit.y; }
+            dx = targetX - this.x; dy = targetY - this.y; d = Math.sqrt(dx*dx + dy*dy);
+            
+            if (d > 200) { this.x += (dx/d)*s; this.y += (dy/d)*s; }
+            
+            if (this.fireTimer > 0) this.fireTimer--;
+            if (nUnit && d <= 250 && this.fireTimer <= 0) {
+                bullets.push(new Bullet(this.x, this.y, Math.atan2(dy, dx), false, 50, 4, 'enemy_artillery'));
+                this.fireTimer = 180; // 3s reload
+            }
+        }
+
+        // Base Collision (All enemies damage base if they touch it)
+        let bDx = this.baseX - this.x, bDy = this.baseY - this.y, bDist = Math.sqrt(bDx*bDx + bDy*bDy);
+        if (bDist < CONFIG.BASE_RADIUS + this.radius) {
+            this.active = false; createParticles(this.x, this.y, this.color, 20);
+            gameData.baseHp -= this.maxHp * 0.5; screenShake = 10;
+            if(gameData.baseHp <= 0) gameState = STATE.GAMEOVER;
+        }
+    }
+
+    draw(ctx) {
+        ctx.fillStyle = (this.stunTime > 0) ? '#eab308' : ((this.slowTime > 0) ? '#60a5fa' : this.color);
+        ctx.shadowBlur = 5; ctx.shadowColor = ctx.fillStyle;
+        
+        ctx.save(); ctx.translate(this.x, this.y);
+        
+        ctx.beginPath();
+        if(this.shape === 'circle') ctx.arc(0, 0, this.radius, 0, Math.PI * 2);
+        else if(this.shape === 'square') ctx.rect(-this.radius, -this.radius, this.radius*2, this.radius*2);
+        else if(this.shape === 'rect') ctx.rect(-this.radius, -this.radius*0.8, this.radius*2, this.radius*1.6);
+        else if(this.shape === 'triangle') { ctx.moveTo(this.radius,0); ctx.lineTo(-this.radius,-this.radius); ctx.lineTo(-this.radius,this.radius); }
+        else if(this.shape === 'circle-dot') { ctx.arc(0, 0, this.radius, 0, Math.PI*2); ctx.fill(); ctx.fillStyle='#fff'; ctx.beginPath(); ctx.arc(0,0,this.radius*0.4,0,Math.PI*2); }
+        else if(this.shape === 'hexagon') { for(let i=0;i<6;i++) { let a=(i*Math.PI)/3; let px=Math.cos(a)*this.radius, py=Math.sin(a)*this.radius; if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py); } ctx.closePath(); }
+        ctx.fill();
+
+        // HP Bar
+        if(this.hp < this.maxHp) {
+            ctx.fillStyle = '#333'; ctx.fillRect(-15, -this.radius-10, 30, 4);
+            ctx.fillStyle = '#22c55e'; ctx.fillRect(-15, -this.radius-10, 30*(this.hp/this.maxHp), 4);
+        }
+        ctx.restore();
     }
 }
 
 // ==========================================
-// Main Logic
+// Main Logic Flow
 // ==========================================
 document.getElementById('btn-start-sp').addEventListener('click', () => {
     isMultiplayer = false; waveTimeLimit = 20; maxTicks = waveTimeLimit * CONFIG.FPS;
@@ -818,7 +805,10 @@ function openShop() {
     gameState = STATE.SHOP;
     document.getElementById('screen-shop').classList.remove('hidden');
     document.getElementById('shop-coins').innerText = gameData.coins;
-    document.getElementById('ui-coins').innerText = gameData.coins;
+    
+    const uiCoins = document.getElementById('ui-coins');
+    if(uiCoins) uiCoins.innerText = gameData.coins;
+    
     document.getElementById('btn-next-loop').innerText = `进入第 ${gameData.wave} 轮循环`;
     renderClassCards();
 }
@@ -831,10 +821,7 @@ function renderClassCards() {
         const btn = document.createElement('button');
         btn.className = `class-card p-4 rounded-xl text-left bg-slate-700/50 ${selectedClass === c ? 'selected' : ''}`;
         btn.onclick = () => { selectedClass = c; renderClassCards(); };
-        btn.innerHTML = `
-            <div class="font-bold text-xl text-white mb-2">${info.name}</div>
-            <div class="text-sm text-slate-300 leading-snug">${info.desc}</div>
-        `;
+        btn.innerHTML = `<div class="font-bold text-xl text-white mb-2">${info.name}</div><div class="text-sm text-slate-300 leading-snug">${info.desc}</div>`;
         container.appendChild(btn);
     });
 }
@@ -842,24 +829,16 @@ function renderClassCards() {
 document.getElementById('btn-next-loop').addEventListener('click', () => {
     document.getElementById('screen-shop').classList.add('hidden');
     
-    if (gameData.markerPos) {
-        gameData.baseX = gameData.markerPos.x;
-        gameData.baseY = gameData.markerPos.y;
-        gameData.markerPos = null;
-    }
-    
+    if (gameData.markerPos) { gameData.baseX = gameData.markerPos.x; gameData.baseY = gameData.markerPos.y; gameData.markerPos = null; }
     gameData.baseHp = Math.min(CONFIG.BASE_HP_MAX, gameData.baseHp + CONFIG.BASE_HP_MAX * 0.75);
 
     seed = gameData.wave; 
     player = new PlayerUnit(gameData.baseX, gameData.baseY, selectedClass, false);
     
     clones = [];
-    gameData.pastLoops.forEach(loop => {
-        clones.push(new PlayerUnit(gameData.baseX, gameData.baseY, loop.classType, true));
-    });
+    gameData.pastLoops.forEach(loop => { clones.push(new PlayerUnit(gameData.baseX, gameData.baseY, loop.classType, true)); });
 
-    turrets = [];
-    bullets = []; dogs = []; shockwaves = []; laserBeams = []; enemies = []; particles = []; resources = [];
+    turrets = []; bullets = []; dogs = []; shockwaves = []; laserBeams = []; enemies = []; particles = []; resources = [];
     
     for(let i=0; i<20; i++) {
         let a = random()*Math.PI*2, d = 300 + random()*1500;
@@ -873,14 +852,10 @@ document.getElementById('btn-next-loop').addEventListener('click', () => {
 
 function endWave() {
     if (isMultiplayer) {
-        gameState = STATE.SYNCING;
-        document.getElementById('screen-syncing').classList.remove('hidden');
-        let cData = compressLoop(gameData.currentLoopData);
-        updateDoc(roomRef, { [`${myRole}Data`]: JSON.stringify(cData) });
+        gameState = STATE.SYNCING; document.getElementById('screen-syncing').classList.remove('hidden');
+        updateDoc(roomRef, { [`${myRole}Data`]: JSON.stringify(compressLoop(gameData.currentLoopData)) });
     } else {
-        gameData.pastLoops.push(gameData.currentLoopData);
-        gameData.wave++;
-        openShop();
+        gameData.pastLoops.push(gameData.currentLoopData); gameData.wave++; openShop();
     }
 }
 
@@ -888,14 +863,11 @@ function endWave() {
 // Game Loop (Update & Draw)
 // ==========================================
 let lastTime = performance.now();
-let accumulator = 0;
-const timeStep = 1000 / CONFIG.FPS;
+let accumulator = 0; const timeStep = 1000 / CONFIG.FPS;
 
 function gameLoop(time) {
     requestAnimationFrame(gameLoop);
-    let dt = Math.min(time - lastTime, 250);
-    lastTime = time;
-    accumulator += dt;
+    let dt = Math.min(time - lastTime, 250); lastTime = time; accumulator += dt;
     while (accumulator >= timeStep) { update(); accumulator -= timeStep; }
     draw();
 }
@@ -908,10 +880,9 @@ function update() {
     }
     if (gameState !== STATE.PLAYING) return;
 
-    // Local Player Logic & Movement
+    // Player Input
     let dx = 0, dy = 0;
-    if(keys.w) dy -= 1; if(keys.s) dy += 1;
-    if(keys.a) dx -= 1; if(keys.d) dx += 1;
+    if(keys.w) dy -= 1; if(keys.s) dy += 1; if(keys.a) dx -= 1; if(keys.d) dx += 1;
     if(dx !== 0 || dy !== 0) {
         let len = Math.sqrt(dx*dx + dy*dy);
         let s = (selectedClass === 'scout') ? CONFIG.PLAYER_SPEED * 1.5 : CONFIG.PLAYER_SPEED;
@@ -921,29 +892,17 @@ function update() {
 
     let buildStarted = false;
     if (player.classType === 'engineer') {
-        if (inputState.e_pressed && player.buildTimer === 0 && gameData.coins >= 50) {
-            gameData.coins -= 50;
-            buildStarted = true;
-        }
-        if (inputState.q_pressed && player.cooldown === 0) {
-            gameData.markerPos = {x: player.x, y: player.y};
-            player.cooldown = 30;
-        }
-        if (player.buildTimer > 0) {
-            dx = 0; dy = 0; // 不允许移动
-        }
+        if (inputState.e_pressed && player.buildTimer === 0 && gameData.coins >= 50) { gameData.coins -= 50; buildStarted = true; }
+        if (inputState.q_pressed && player.cooldown === 0) { gameData.markerPos = {x: player.x, y: player.y}; player.cooldown = 30; }
+        if (player.buildTimer > 0) { dx = 0; dy = 0; }
     }
-    
-    inputState.e_pressed = false;
-    inputState.q_pressed = false;
+    inputState.e_pressed = false; inputState.q_pressed = false;
 
-    let worldMouseX = mouse.x + camera.x;
-    let worldMouseY = mouse.y + camera.y;
+    let worldMouseX = mouse.x + camera.x, worldMouseY = mouse.y + camera.y;
     let pAngle = Math.atan2(worldMouseY - player.y, worldMouseX - player.x);
 
     let currentState = { x: player.x+dx, y: player.y+dy, angle: pAngle, firing: mouse.down, tX: worldMouseX, tY: worldMouseY, buildStarted: buildStarted };
-    player.update(currentState);
-    
+    if(player.active) player.update(currentState);
     gameData.currentLoopData.trajectory[gameData.tick] = currentState;
 
     clones.forEach((c, idx) => {
@@ -953,32 +912,37 @@ function update() {
     });
 
     turrets.forEach(t => t.update());
+    turrets = turrets.filter(t => t.active);
     
+    // Smart Spawn Logic with Types
     let spawnRate = Math.max(25, 120 - gameData.wave * 10 - gameData.pastLoops.length * 3);
     if (gameData.tick % spawnRate === 0) {
         let isSwarm = random() > 0.6; 
         let count = isSwarm ? Math.floor(random() * 4) + 3 : 1; 
 
-        let baseA = random() * Math.PI * 2;
-        let baseD = 1200 + random() * 600;
+        // Determine available types
+        let pool = ['xeno'];
+        if (gameData.wave > 1) pool.push('fanatis', 'typeX');
+        if (gameData.wave > 2) pool.push('mp');
+        if (gameData.wave > 3) pool.push('duke');
+        if (gameData.wave > 4) pool.push('emperor');
+
+        let baseA = random() * Math.PI * 2; let baseD = 1200 + random() * 600;
 
         for(let i=0; i<count; i++) {
-            let a = baseA + (random() - 0.5) * 0.4;
-            let d = baseD + (random() - 0.5) * 200;
-            let ex = gameData.baseX + Math.cos(a)*d;
-            let ey = gameData.baseY + Math.sin(a)*d;
-            enemies.push(new Enemy(gameData.wave, gameData.baseX, gameData.baseY, ex, ey));
+            let a = baseA + (random() - 0.5) * 0.4; let d = baseD + (random() - 0.5) * 200;
+            let ex = gameData.baseX + Math.cos(a)*d, ey = gameData.baseY + Math.sin(a)*d;
+            let eType = pool[Math.floor(random() * pool.length)];
+            enemies.push(new Enemy(gameData.wave, gameData.baseX, gameData.baseY, ex, ey, eType));
         }
 
         if (isMultiplayer) {
-            let baseA2 = random() * Math.PI * 2;
-            let baseD2 = 1200 + random() * 600;
+            let baseA2 = random() * Math.PI * 2; let baseD2 = 1200 + random() * 600;
             for(let i=0; i<count; i++) {
-                let a = baseA2 + (random() - 0.5) * 0.4;
-                let d = baseD2 + (random() - 0.5) * 200;
-                let ex = 3000 + Math.cos(a)*d;
-                let ey = 3000 + Math.sin(a)*d;
-                enemies.push(new Enemy(gameData.wave, 3000, 3000, ex, ey));
+                let a = baseA2 + (random() - 0.5) * 0.4; let d = baseD2 + (random() - 0.5) * 200;
+                let ex = 3000 + Math.cos(a)*d, ey = 3000 + Math.sin(a)*d;
+                let eType = pool[Math.floor(random() * pool.length)];
+                enemies.push(new Enemy(gameData.wave, 3000, 3000, ex, ey, eType));
             }
         }
     }
@@ -987,45 +951,30 @@ function update() {
     dogs.forEach(d => d.update());
     enemies.forEach(e => e.update());
     particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.life -= p.decay; });
-    
-    laserBeams.forEach(l => l.life--);
-    laserBeams = laserBeams.filter(l => l.life > 0);
+    laserBeams.forEach(l => l.life--); laserBeams = laserBeams.filter(l => l.life > 0);
 
     let checkShield = (unit, isFiring) => {
         if(unit.active && unit.classType === 'shield' && isFiring) {
             enemies.forEach(e => {
                 if (!e.active) return;
-                let edx = e.x - unit.x, edy = e.y - unit.y;
-                let d = Math.sqrt(edx*edx + edy*edy);
-                let eAngle = Math.atan2(edy, edx);
-                let angleDiff = Math.abs(eAngle - unit.angle);
+                let edx = e.x - unit.x, edy = e.y - unit.y, d = Math.sqrt(edx*edx + edy*edy);
+                let eAngle = Math.atan2(edy, edx); let angleDiff = Math.abs(eAngle - unit.angle);
                 if (angleDiff > Math.PI) angleDiff = 2*Math.PI - angleDiff;
                 
-                if (d < CONFIG.PLAYER_RADIUS + e.radius + 15 && angleDiff < Math.PI/2.5) {
-                    e.x += Math.cos(unit.angle) * 10;
-                    e.y += Math.sin(unit.angle) * 10;
-                    e.hp -= 2; 
-                }
+                if (d < CONFIG.PLAYER_RADIUS + e.radius + 15 && angleDiff < Math.PI/2.5) { e.x += Math.cos(unit.angle) * 10; e.y += Math.sin(unit.angle) * 10; e.hp -= 2; }
             });
         }
     };
     checkShield(player, mouse.down);
     clones.forEach((c, idx) => {
-        let loop = gameData.pastLoops[idx];
-        let state = loop.trajectory[gameData.tick] || loop.trajectory[maxTicks-1] || {firing:false};
+        let loop = gameData.pastLoops[idx]; let state = loop.trajectory[gameData.tick] || loop.trajectory[maxTicks-1] || {firing:false};
         checkShield(c, state.firing);
     });
     
     for(let i = shockwaves.length-1; i>=0; i--) {
-        let s = shockwaves[i];
-        s.radius += (s.maxRadius - s.radius) * 0.15;
-        s.life--;
+        let s = shockwaves[i]; s.radius += (s.maxRadius - s.radius) * 0.15; s.life--;
         if (s.life === s.maxLife - 5) { 
-            enemies.forEach(e => {
-                if(e.active && dist(s.x, s.y, e.x, e.y) < s.radius + 50) {
-                    e.stunTime = 42; e.slowTime = 180; e.hp -= s.dmg;
-                }
-            });
+            enemies.forEach(e => { if(e.active && dist(s.x, s.y, e.x, e.y) < s.radius + 50) { e.stunTime = 42; e.slowTime = 180; e.hp -= s.dmg; } });
         }
         if (s.life <= 0) shockwaves.splice(i, 1);
     }
@@ -1033,40 +982,63 @@ function update() {
     for (let i = bullets.length - 1; i >= 0; i--) {
         let b = bullets[i];
         if (!b.active || b instanceof Grenade || b instanceof TimeBomb) continue;
+        
+        // Enemy Bullets logic
+        if (b.type.startsWith('enemy')) {
+            if (b.type === 'enemy_artillery' && b.life === 1) { // Explode at end of life
+                createParticles(b.x, b.y, '#eab308', 20, 2);
+                screenShake = 5;
+                if(player.active && dist(b.x, b.y, player.x, player.y) < 100) player.hp -= 50;
+                clones.forEach(c => { if(c.active && dist(b.x, b.y, c.x, c.y) < 100) c.hp -= 50; });
+                turrets.forEach(t => { if(t.active && dist(b.x, b.y, t.x, t.y) < 100) t.hp -= 100; });
+            } else {
+                // Check hits against player/clones/turrets
+                if(player.active && dist(b.x, b.y, player.x, player.y) < CONFIG.PLAYER_RADIUS) { player.hp -= b.dmg; b.active = false; }
+                clones.forEach(c => { if(c.active && dist(b.x, b.y, c.x, c.y) < CONFIG.PLAYER_RADIUS) { c.hp -= b.dmg; b.active = false; } });
+                turrets.forEach(t => { if(t.active && dist(b.x, b.y, t.x, t.y) < 20) { t.hp -= b.dmg; b.active = false; } });
+            }
+            // Check base
+            if (dist(b.x, b.y, gameData.baseX, gameData.baseY) < CONFIG.BASE_RADIUS) { gameData.baseHp -= b.dmg; b.active = false; }
+            continue;
+        }
+
+        // Friendly bullets vs enemies
         for (let j = enemies.length - 1; j >= 0; j--) {
             let e = enemies[j];
             if (!e.active) continue;
             if (dist(b.x, b.y, e.x, e.y) < e.radius + (b.type === 'flame' ? 15 : 5)) {
                 if (b.type !== 'flame') b.active = false; 
-                e.hp -= b.dmg;
-                createParticles(b.x, b.y, '#fde047', 2);
+                e.hp -= b.dmg; createParticles(b.x, b.y, '#fde047', 2);
                 if (!b.active) break;
             }
         }
     }
 
-    bullets = bullets.filter(b => b.active);
-    dogs = dogs.filter(d => d.active);
-    enemies = enemies.filter(e => e.active);
-    particles = particles.filter(p => p.life > 0);
+    bullets = bullets.filter(b => b.active); dogs = dogs.filter(d => d.active); enemies = enemies.filter(e => e.active); particles = particles.filter(p => p.life > 0);
+    if(player && player.hp <= 0) { player.active = false; createParticles(player.x, player.y, '#06b6d4', 20); }
+    clones.forEach(c => { if(c.hp <= 0 && c.active) { c.active = false; createParticles(c.x, c.y, '#3b82f6', 20); } });
 
     camera.x += (player.x - canvas.width/2 - camera.x) * 0.1;
     camera.y += (player.y - canvas.height/2 - camera.y) * 0.1;
 
     gameData.tick++;
     if (gameData.tick % 15 === 0) {
-        document.getElementById('ui-wave').innerText = gameData.wave;
-        document.getElementById('ui-clones').innerText = gameData.pastLoops.length;
-        document.getElementById('ui-coins').innerText = gameData.coins;
+        const uiWave = document.getElementById('ui-wave'); if(uiWave) uiWave.innerText = gameData.wave;
+        const uiClones = document.getElementById('ui-clones'); if(uiClones) uiClones.innerText = gameData.pastLoops.length;
+        const uiCoins = document.getElementById('ui-coins'); if(uiCoins) uiCoins.innerText = gameData.coins;
+        
         let hpPct = Math.max(0, (gameData.baseHp / CONFIG.BASE_HP_MAX) * 100);
-        document.getElementById('ui-hp').innerText = `${Math.ceil(hpPct)}%`;
-        document.getElementById('ui-hp-bar').style.width = `${hpPct}%`;
-        document.getElementById('ui-hp-bar').className = `h-full transition-all duration-200 ${hpPct>60?'bg-green-500':(hpPct>30?'bg-yellow-500':'bg-red-500')}`;
+        const uiHp = document.getElementById('ui-hp'); if(uiHp) uiHp.innerText = `${Math.ceil(hpPct)}%`;
+        const uiHpBar = document.getElementById('ui-hp-bar');
+        if(uiHpBar) {
+            uiHpBar.style.width = `${hpPct}%`;
+            uiHpBar.className = `h-full transition-all duration-200 ${hpPct>60?'bg-green-500':(hpPct>30?'bg-yellow-500':'bg-red-500')}`;
+        }
     }
     
     let timeLeft = Math.max(0, (maxTicks - gameData.tick) / CONFIG.FPS);
-    document.getElementById('ui-time').innerText = timeLeft.toFixed(1);
-    document.getElementById('ui-time-bar').style.width = `${(gameData.tick / maxTicks) * 100}%`;
+    const uiTime = document.getElementById('ui-time'); if(uiTime) uiTime.innerText = timeLeft.toFixed(1);
+    const uiTimeBar = document.getElementById('ui-time-bar'); if(uiTimeBar) uiTimeBar.style.width = `${(gameData.tick / maxTicks) * 100}%`;
     
     if (gameData.tick >= maxTicks) endWave();
 }
@@ -1075,9 +1047,7 @@ function draw() {
     ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 0, canvas.width, canvas.height);
     if (gameState !== STATE.PLAYING && gameState !== STATE.SYNCING) return;
 
-    ctx.save();
-    applyScreenShake();
-    ctx.translate(-camera.x, -camera.y);
+    ctx.save(); applyScreenShake(); ctx.translate(-camera.x, -camera.y);
 
     ctx.strokeStyle = 'rgba(51, 65, 85, 0.3)'; ctx.lineWidth = 1; ctx.beginPath();
     let startX = camera.x - (camera.x % 100) - 100, endX = camera.x + canvas.width + 100;
@@ -1086,131 +1056,74 @@ function draw() {
     for(let i=startY; i<endY; i+=100) { ctx.moveTo(startX, i); ctx.lineTo(endX, i); }
     ctx.stroke();
 
-    resources.forEach(r => {
-        ctx.fillStyle = '#facc15'; ctx.shadowBlur = 10; ctx.shadowColor = '#facc15';
-        ctx.beginPath(); ctx.arc(r.x, r.y, 8, 0, Math.PI*2); ctx.fill();
-    });
+    resources.forEach(r => { ctx.fillStyle = '#facc15'; ctx.shadowBlur = 10; ctx.shadowColor = '#facc15'; ctx.beginPath(); ctx.arc(r.x, r.y, 8, 0, Math.PI*2); ctx.fill(); });
 
     function drawBase(bx, by) {
-        ctx.save(); ctx.translate(bx, by);
-        let pulse = Math.sin(Date.now() / 300) * 5;
+        ctx.save(); ctx.translate(bx, by); let pulse = Math.sin(Date.now() / 300) * 5;
         ctx.fillStyle = '#22c55e'; ctx.shadowBlur = 20 + pulse; ctx.shadowColor = ctx.fillStyle;
         ctx.beginPath();
         for (let i = 0; i < 6; i++) {
-            let a = (i * Math.PI) / 3;
-            let px = Math.cos(a) * (CONFIG.BASE_RADIUS + pulse/2);
-            let py = Math.sin(a) * (CONFIG.BASE_RADIUS + pulse/2);
+            let a = (i * Math.PI) / 3; let px = Math.cos(a) * (CONFIG.BASE_RADIUS + pulse/2), py = Math.sin(a) * (CONFIG.BASE_RADIUS + pulse/2);
             if(i===0) ctx.moveTo(px,py); else ctx.lineTo(px,py);
         }
-        ctx.closePath(); ctx.fill();
-        ctx.fillStyle = '#0f172a'; ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI*2); ctx.fill();
-        ctx.restore();
+        ctx.closePath(); ctx.fill(); ctx.fillStyle = '#0f172a'; ctx.beginPath(); ctx.arc(0, 0, 15, 0, Math.PI*2); ctx.fill(); ctx.restore();
     }
     
     drawBase(gameData.baseX, gameData.baseY);
     if (isMultiplayer) drawBase(myRole === 'p1' ? 3000 : 0, myRole === 'p1' ? 3000 : 0);
 
     if (gameData.markerPos) {
-        ctx.strokeStyle = '#06b6d4'; ctx.setLineDash([5, 5]); ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.arc(gameData.markerPos.x, gameData.markerPos.y, 30, 0, Math.PI*2); ctx.stroke();
-        ctx.setLineDash([]);
+        ctx.strokeStyle = '#06b6d4'; ctx.setLineDash([5, 5]); ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(gameData.markerPos.x, gameData.markerPos.y, 30, 0, Math.PI*2); ctx.stroke(); ctx.setLineDash([]);
     }
 
-    turrets.forEach(t => t.draw(ctx));
-    clones.forEach(c => c.draw(ctx));
-    if (player && player.active) player.draw(ctx);
+    turrets.forEach(t => t.draw(ctx)); clones.forEach(c => c.draw(ctx)); if (player && player.active) player.draw(ctx);
     
-    laserBeams.forEach(l => {
-        ctx.strokeStyle = `rgba(239, 68, 68, ${l.life/15})`; ctx.lineWidth = 4;
-        ctx.beginPath(); ctx.moveTo(l.x1, l.y1); ctx.lineTo(l.x2, l.y2); ctx.stroke();
-    });
-
-    shockwaves.forEach(s => {
-        ctx.strokeStyle = `rgba(56, 189, 248, ${s.life/s.maxLife})`; ctx.lineWidth = 4;
-        ctx.beginPath(); ctx.arc(s.x, s.y, s.radius, 0, Math.PI*2); ctx.stroke();
-    });
-    
+    laserBeams.forEach(l => { ctx.strokeStyle = `rgba(239, 68, 68, ${l.life/15})`; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(l.x1, l.y1); ctx.lineTo(l.x2, l.y2); ctx.stroke(); });
+    shockwaves.forEach(s => { ctx.strokeStyle = `rgba(56, 189, 248, ${s.life/s.maxLife})`; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(s.x, s.y, s.radius, 0, Math.PI*2); ctx.stroke(); });
     dogs.forEach(d => d.draw(ctx));
-    particles.forEach(p => {
-        ctx.globalAlpha = p.life; ctx.fillStyle = p.color;
-        ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI*2); ctx.fill();
-    });
+    particles.forEach(p => { ctx.globalAlpha = p.life; ctx.fillStyle = p.color; ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI*2); ctx.fill(); });
     bullets.forEach(b => b.draw(ctx));
     enemies.forEach(e => e.draw(ctx));
 
-    ctx.globalAlpha = 1.0;
-    ctx.restore();
+    ctx.globalAlpha = 1.0; ctx.restore();
 
-    fogCtx.globalCompositeOperation = 'source-over';
-    fogCtx.fillStyle = 'rgba(0, 0, 0, 0.9)'; 
-    fogCtx.fillRect(0, 0, fogCanvas.width, fogCanvas.height);
-    
+    fogCtx.globalCompositeOperation = 'source-over'; fogCtx.fillStyle = 'rgba(0, 0, 0, 0.9)'; fogCtx.fillRect(0, 0, fogCanvas.width, fogCanvas.height);
     fogCtx.globalCompositeOperation = 'destination-out'; 
     
     function drawVision(wx, wy, radius) {
         let sx = wx - camera.x, sy = wy - camera.y;
         if(sx < -radius || sx > fogCanvas.width+radius || sy < -radius || sy > fogCanvas.height+radius) return;
-        
-        let grad = fogCtx.createRadialGradient(sx, sy, radius*0.3, sx, sy, radius);
-        grad.addColorStop(0, 'rgba(0,0,0,1)'); 
-        grad.addColorStop(1, 'rgba(0,0,0,0)');
-        
-        fogCtx.fillStyle = grad;
-        fogCtx.beginPath(); 
-        fogCtx.arc(sx, sy, radius, 0, Math.PI*2); 
-        fogCtx.fill();
+        let grad = fogCtx.createRadialGradient(sx, sy, radius*0.3, sx, sy, radius); grad.addColorStop(0, 'rgba(0,0,0,1)'); grad.addColorStop(1, 'rgba(0,0,0,0)');
+        fogCtx.fillStyle = grad; fogCtx.beginPath(); fogCtx.arc(sx, sy, radius, 0, Math.PI*2); fogCtx.fill();
     }
 
     drawVision(gameData.baseX, gameData.baseY, CONFIG.FOG_RADIUS_BASE);
-    if(player) drawVision(player.x, player.y, CONFIG.FOG_RADIUS_PLAYER);
-    clones.forEach(c => drawVision(c.x, c.y, CONFIG.FOG_RADIUS_CLONE));
+    if(player && player.active) drawVision(player.x, player.y, CONFIG.FOG_RADIUS_PLAYER);
+    clones.forEach(c => { if(c.active) drawVision(c.x, c.y, CONFIG.FOG_RADIUS_CLONE); });
     turrets.forEach(t => drawVision(t.x, t.y, 400));
     if (isMultiplayer) drawVision(myRole === 'p1' ? 3000 : 0, myRole === 'p1' ? 3000 : 0, CONFIG.FOG_RADIUS_BASE);
     
-    ctx.globalCompositeOperation = 'source-over';
-    ctx.drawImage(fogCanvas, 0, 0);
+    ctx.globalCompositeOperation = 'source-over'; ctx.drawImage(fogCanvas, 0, 0);
 
+    // Minimap
     ctx.save();
-    
-    const MINIMAP_RADIUS = 100;
-    const MINIMAP_MARGIN = 30;
-    let mmCenterX = MINIMAP_MARGIN + MINIMAP_RADIUS;
-    let mmCenterY = canvas.height - MINIMAP_MARGIN - MINIMAP_RADIUS;
-
+    const MINIMAP_RADIUS = 100, MINIMAP_MARGIN = 30; let mmCenterX = MINIMAP_MARGIN + MINIMAP_RADIUS, mmCenterY = canvas.height - MINIMAP_MARGIN - MINIMAP_RADIUS;
     ctx.translate(mmCenterX, mmCenterY);
-    
-    ctx.beginPath();
-    ctx.arc(0, 0, MINIMAP_RADIUS, 0, Math.PI * 2);
-    ctx.clip();
-    
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.8)';
-    ctx.fill();
+    ctx.beginPath(); ctx.arc(0, 0, MINIMAP_RADIUS, 0, Math.PI * 2); ctx.clip();
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.8)'; ctx.fill();
 
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
-    ctx.lineWidth = 1;
-    let gridStep = 1000 * minimapZoom;
-    let camCenterX = camera.x + canvas.width/2;
-    let camCenterY = camera.y + canvas.height/2;
-    let offsetX = -(camCenterX * minimapZoom) % gridStep;
-    let offsetY = -(camCenterY * minimapZoom) % gridStep;
-    
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)'; ctx.lineWidth = 1;
+    let gridStep = 1000 * minimapZoom, camCenterX = camera.x + canvas.width/2, camCenterY = camera.y + canvas.height/2;
+    let offsetX = -(camCenterX * minimapZoom) % gridStep, offsetY = -(camCenterY * minimapZoom) % gridStep;
     ctx.beginPath();
-    for(let i = offsetX - MINIMAP_RADIUS; i < MINIMAP_RADIUS; i += gridStep) {
-        ctx.moveTo(i, -MINIMAP_RADIUS); ctx.lineTo(i, MINIMAP_RADIUS);
-    }
-    for(let i = offsetY - MINIMAP_RADIUS; i < MINIMAP_RADIUS; i += gridStep) {
-        ctx.moveTo(-MINIMAP_RADIUS, i); ctx.lineTo(MINIMAP_RADIUS, i);
-    }
+    for(let i = offsetX - MINIMAP_RADIUS; i < MINIMAP_RADIUS; i += gridStep) { ctx.moveTo(i, -MINIMAP_RADIUS); ctx.lineTo(i, MINIMAP_RADIUS); }
+    for(let i = offsetY - MINIMAP_RADIUS; i < MINIMAP_RADIUS; i += gridStep) { ctx.moveTo(-MINIMAP_RADIUS, i); ctx.lineTo(MINIMAP_RADIUS, i); }
     ctx.stroke();
 
     function drawMiniEntity(x, y, color, size) {
-        let mx = (x - camCenterX) * minimapZoom;
-        let my = (y - camCenterY) * minimapZoom;
+        let mx = (x - camCenterX) * minimapZoom, my = (y - camCenterY) * minimapZoom;
         if (mx*mx + my*my > MINIMAP_RADIUS * MINIMAP_RADIUS) return; 
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.arc(mx, my, size, 0, Math.PI*2);
-        ctx.fill();
+        ctx.fillStyle = color; ctx.beginPath(); ctx.arc(mx, my, size, 0, Math.PI*2); ctx.fill();
     }
 
     drawMiniEntity(gameData.baseX, gameData.baseY, '#22c55e', 4);
@@ -1218,40 +1131,24 @@ function draw() {
 
     resources.forEach(r => drawMiniEntity(r.x, r.y, '#facc15', 1.5));
     turrets.forEach(t => drawMiniEntity(t.x, t.y, '#eab308', 2));
-    enemies.forEach(e => drawMiniEntity(e.x, e.y, '#ef4444', 2.5));
-    clones.forEach(c => drawMiniEntity(c.x, c.y, '#3b82f6', 2.5));
+    enemies.forEach(e => drawMiniEntity(e.x, e.y, e.color, 2.5)); // Color map to enemy type
+    clones.forEach(c => { if(c.active) drawMiniEntity(c.x, c.y, '#3b82f6', 2.5); });
     dogs.forEach(d => drawMiniEntity(d.x, d.y, '#8b5cf6', 1.5));
     if(player && player.active) drawMiniEntity(player.x, player.y, '#06b6d4', 3);
-    
     if(gameData.markerPos) drawMiniEntity(gameData.markerPos.x, gameData.markerPos.y, '#06b6d4', 3);
 
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)'; ctx.lineWidth = 1;
     ctx.strokeRect(-canvas.width/2 * minimapZoom, -canvas.height/2 * minimapZoom, canvas.width * minimapZoom, canvas.height * minimapZoom);
-
     ctx.restore(); 
     
-    ctx.save();
-    ctx.translate(mmCenterX, mmCenterY);
-    ctx.beginPath();
-    ctx.arc(0, 0, MINIMAP_RADIUS, 0, Math.PI * 2);
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = '#06b6d4';
-    ctx.stroke();
-    
-    ctx.fillStyle = 'rgba(6, 182, 212, 0.7)';
-    ctx.font = '10px Arial';
-    ctx.textAlign = 'center';
-    ctx.fillText('滚轮缩放', 0, MINIMAP_RADIUS + 12);
+    ctx.save(); ctx.translate(mmCenterX, mmCenterY); ctx.beginPath(); ctx.arc(0, 0, MINIMAP_RADIUS, 0, Math.PI * 2);
+    ctx.lineWidth = 3; ctx.strokeStyle = '#06b6d4'; ctx.stroke();
+    ctx.fillStyle = 'rgba(6, 182, 212, 0.7)'; ctx.font = '10px Arial'; ctx.textAlign = 'center'; ctx.fillText('滚轮缩放', 0, MINIMAP_RADIUS + 12);
     ctx.restore();
 }
 
 function applyScreenShake() {
-    if(screenShake > 0) {
-        ctx.translate((Math.random()-0.5)*screenShake, (Math.random()-0.5)*screenShake);
-        screenShake *= 0.9;
-        if(screenShake < 0.5) screenShake = 0;
-    }
+    if(screenShake > 0) { ctx.translate((Math.random()-0.5)*screenShake, (Math.random()-0.5)*screenShake); screenShake *= 0.9; if(screenShake < 0.5) screenShake = 0; }
 }
 
 requestAnimationFrame(gameLoop);
